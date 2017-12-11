@@ -64,18 +64,44 @@ class xfer_input(ds_project_base):
 
         # Fetch runs from DB and process for # runs specified for this instance.
         ctr = self._nruns
-        print "Cursor: ",self._api._cursor
 
-        # Get Runs with status=1 (0=disable,2=done)
-        runs = self.get_runs(self._project,1)
-        
-        query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun) where status=1" 
-        query = query % (self._project,self._project,self._project,self._filetable,self._project,self._filetable,self._project,self._filetable)
+        # Get Runs with status=1 or 2 (0=notrun,1=copied,2=error,3=done)
+        query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun) where status=1 or status=2 order by run, subrun desc limit %d" 
+        query = query % (self._project,self._project,self._project,self._filetable,self._project,self._filetable,self._project,self._filetable,self._nruns)
 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         for x in results:
-            print x
+            run    = int(x[0])
+            subrun = int(x[1])
+            runmod100 = run%100
+            rundiv100 = run/100
+            subrunmod100 = subrun%100
+            subrundiv100 = subrun/100
+            infile = {"supera":x[2],
+                      "opreco":x[3],
+                      "reco2d":x[4],
+                      "mcinfo":x[5]}
+            outfile = {}
+            print "===== (",run,",",subrun,") ========="
+            print self._outfile_format
+            for f in ["supera","opreco","reco2d","mcinfo"]:
+                dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
+                os.system("mkdir -p %s"%(dbdir))
+                outfile[f] =  dbdir + "/" + self._outfile_format%(f,run,subrun)
+                #print infile[f] +" " + outfile[f]
+                cmd = "rsync -av --progress %s %s" % ( infile[f], outfile[f] )
+                print cmd
+                prsyncout = os.popen( cmd )
+                rsyncout  = prsyncout.readlines()
+                for i in rsyncout:
+                    print i.strip()
+                status = ds_status( project = self._project,
+                                    run     = run,
+                                    subrun  = subrun,
+                                    seq     = 0,
+                                    status  = 2 )
+                self.log_status( status )
 
 
         return
@@ -94,41 +120,68 @@ class xfer_input(ds_project_base):
 
         # Fetch runs from DB and process for # runs specified for this instance.
         ctr = self._nruns
-        for x in self.get_runs(self._project,2):
 
-            # Counter decreases by 1
-            ctr -=1
+        # Get Runs with status=1 (0=notrun,1=copied,2=error,3=done)
+        query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun) where status=1  order by run, subrun desc" 
+        query = query % (self._project,self._project,self._project,self._filetable,self._project,self._filetable,self._project,self._filetable)
 
-            (run, subrun) = (int(x[0]), int(x[1]))
+        self._api._cursor.execute(query)
+        results = self._api._cursor.fetchall()
+
+        for x in results:
+            print x
+
+            run    = int(x[0])
+            subrun = int(x[1])
+            runmod100 = run%100
+            rundiv100 = run/100
+            subrunmod100 = subrun%100
+            subrundiv100 = subrun/100
+            infile = {"supera":x[2],
+                      "opreco":x[3],
+                      "reco2d":x[4],
+                      "mcinfo":x[5]}
+
 
             # Report starting
             self.info('validating run: run=%d, subrun=%d ...' % (run,subrun))
 
             status = 1
-            in_file = '%s/%s' % (self._in_dir,self._infile_format % (run,subrun))
-            out_file = '%s/%s' % (self._out_dir,self._outfile_format % (run,subrun))
+            outfile = {}
+            fstatus = {}
+            for f in ["supera","opreco","reco2d","mcinfo"]:
+                dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
+                outfile[f] =  dbdir + "/" + self._outfile_format%(f,run,subrun)
+                print outfile[f]
+                if os.path.isfile(outfile[f]):
+                    #os.system('rm -f %s' % infile[f])
+                    status = 3
+                else:
+                    status = 2
+                fstatus[f] = status
 
-            if os.path.isfile(out_file):
-                os.system('rm %s' % in_file)
-                status = 0
-            else:
-                status = 100
-
-            # Pretend I'm doing something
-            time.sleep(1)
+            print "Status of xfer: ",status
+            print fstatus
 
             # Create a status object to be logged to DB (if necessary)
-            #status = ds_status( project = self._project,
-            #                    run     = int(x[0]),
-            #                    subrun  = int(x[1]),
-            #                    seq     = int(x[2]),
-            #                    status  = status )
-            
-            # Log status
-            self.log_status( status )
+            dbstatus = ds_status( project = self._project,
+                                run     = int(x[0]),
+                                subrun  = int(x[1]),
+                                seq     = 0,
+                                status  = status )
 
-            # Break from loop if counter became 0
-            if not ctr: break
+            # Log status
+            self.log_status( dbstatus )
+
+            # rename the files in the ftable
+            if status==3:
+                update = "update %s set (supera,opreco,reco2d,mcinfo)"%(self._filetable)
+                update += " = ('%s','%s','%s','%s')" % (outfile["supera"],outfile["opreco"],outfile["reco2d"],outfile["mcinfo"])
+                update += " where run=%d and subrun=%d; commit;" % ( run, subrun )
+                print update
+                self._api._cursor.execute( update )
+                self.info('updated input file table')
+
 
     ## @brief access DB and retrieves runs for which 1st process failed. Clean up.
     def error_handle(self):
@@ -188,9 +241,9 @@ if __name__ == '__main__':
         raise ValueError("require project name argument")
         sys.exit(-1)
         
-    test_obj.process_newruns()
+    #test_obj.process_newruns()
 
     #test_obj.error_handle()
 
-    #test_obj.validate()
+    test_obj.validate()
 

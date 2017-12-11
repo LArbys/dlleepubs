@@ -56,6 +56,7 @@ if hastable:
 else:
     print runtable," not found"
 
+hastable = False
 
 if not hastable:
     os.system("~/pubs/sbin/create_runtable %s"%(runtable))
@@ -77,5 +78,5 @@ for l in f.readlines():
         continue
     insert( runtable, dbconn, logger, ds, l )
 
-
+f.close()
 
