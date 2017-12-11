@@ -21,7 +21,7 @@ import psycopg2 as psql
 class xfer_input(ds_project_base):
 
     # Define project name as class attribute
-    _project = 'dummy_nubin_xfer'
+    _project = 'xferinput'
 
     ## @brief default ctor can take # runs to process for this instance
     def __init__(self,project_name):
