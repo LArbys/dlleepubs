@@ -44,7 +44,7 @@ class tagger(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         self._nruns = int(resource['NRUNS'])
-        self._nruns = 1
+        self._nruns = 2
         self._parent_project = resource['SOURCE_PROJECT']
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
@@ -137,14 +137,14 @@ WORKDIR=%s
 CONTAINER=%s
 INPUTLISTDIR=${WORKDIR}/inputlists
 JOBIDLIST=${WORKDIR}/rerunlist.txt
-CONFIG=%s
+CONFIG=${WORKDIR}/%s
 LARCV_OUTFILENAME=%s
 LARLITE_OUTFILENAME=%s
 
 module load singularity
 srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpubs_job.sh ${CONFIG} ${INPUTLISTDIR} ${LARCV_OUTFILENAME} ${LARLITE_OUTFILENAME} ${JOBIDLIST}"
 """
-            submit = submitscript%(jobtag,run,subrun,workdir,self._container,self._tagger_cfg,larcvout,larliteout)
+            submit = submitscript%(jobtag,run,subrun,workdir,self._container,os.path.basename(self._tagger_cfg),larcvout,larliteout)
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
@@ -188,43 +188,99 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
         if self._nruns is None:
             self.get_resource()
 
-        # Fetch runs from DB and process for # runs specified for this instance.
-        ctr = self._nruns
-        for x in self.get_runs(self._project,2):
+        # get job listing
+        psinfo = os.popen( "squeue | grep twongj01" )
+        lsinfo = psinfo.readlines()
+        runningjobs = []
+        for l in lsinfo:
+            l = l.strip()
+            info = l.split()
+            if len(info)>=8:
+                try:
+                    jobid = int(info[0].strip())
+                    runningjobs.append( jobid )
+                except:
+                    continue
 
-            # Counter decreases by 1
-            ctr -=1
+        # check running jobs
+        query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
+        self._api._cursor.execute(query)
+        results = self._api._cursor.fetchall()
+        self.info("Number of tagger jobs in running state: %d"%(len(results)))
+        for x in results:
+            run    = int(x[0])
+            subrun = int(x[1])
+            try:
+                runid = int(x[-1].split("jobid:")[1].split()[0])
+            except:
+                print "(%d,%d) not parsed"%(run,subrun),": ",x[-1]
+                continue
+            if runid in results:
+                print "(%d,%d) no longer running. updating status,seq to 2,1"
+                status = ds_status( project = self._project,
+                                    run     = int(x[0]),
+                                    subrun  = int(x[1]),
+                                    seq     = 1,
+                                    data    = data,
+                                    status  = 2 )
 
-            (run, subrun) = (int(x[0]), int(x[1]))
+        # check finished jobs
+        # if good, then status 3, seq 0
+        # if bad, then status 1, seq 0
+        # check running jobs
 
-            # Report starting
-            self.info('validating run: run=%d, subrun=%d ...' % (run,subrun))
+        query =  "select t1.run,t1.subrun,supera,opreco"
+        query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
+        query += " where t1.status=2 and t1.seq=1 order by run, subrun desc"
+        self._api._cursor.execute(query)
+        results = self._api._cursor.fetchall()
+        self.info("Number of tagger jobs in finished state: %d"%(len(results)))
+        for x in results:
+            run    = int(x[0])
+            subrun = int(x[1])
+            supera = x[2]
+            opreco = x[3]
 
-            status = 1
-            in_file = '%s/%s' % (self._in_dir,self._infile_format % (run,subrun))
-            out_file = '%s/%s' % (self._out_dir,self._outfile_format % (run,subrun))
-
-            if os.path.isfile(out_file):
-                os.system('rm %s' % in_file)
-                status = 0
-            else:
-                status = 100
-
-            # Pretend I'm doing something
-            time.sleep(1)
-
-            # Create a status object to be logged to DB (if necessary)
-            status = ds_status( project = self._project,
-                                run     = int(x[0]),
-                                subrun  = int(x[1]),
-                                seq     = int(x[2]),
-                                status  = status )
+            # form output file names
+            runmod100 = run%100
+            rundiv100 = run/100
+            subrunmod100 = subrun%100
+            subrundiv100 = subrun/100
+            dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
+            larcvout   = dbdir + "/" + self._outfile_format%("taggerout-larcv",run,subrun)
+            larliteout = dbdir + "/" + self._outfile_format%("taggerout-larlite",run,subrun)
+            jobtag       = 10000*run + subrun
+            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
             
-            # Log status
-            self.log_status( status )
 
-            # Break from loop if counter became 0
-            if not ctr: break
+            pcheck = os.popen("./singularity_check_jobs.sh %s %s %s"%(larcvout,larliteout,supera))
+            lcheck = pcheck.readlines()
+            good = False
+            try:
+                if lcheck[-1].strip()=="True":
+                    good = True
+            except:
+                good = False
+
+            if good:
+                status = ds_status( project = self._project,
+                                    run     = int(x[0]),
+                                    subrun  = int(x[1]),
+                                    seq     = 0,
+                                    status  = 3 )
+                cmd = "rm -rf %s"%(workdir)
+                self.log_status(status)
+                os.system(cmd)
+                self.info(cmd)
+            else:
+                # set to error state
+                status = ds_status( project = self._project,
+                                    run     = int(x[0]),
+                                    subrun  = int(x[1]),
+                                    seq     = 0,
+                                    data    = data,
+                                    status  = 10 )                
+
 
     ## @brief access DB and retrieves runs for which 1st process failed. Clean up.
     def error_handle(self):
@@ -238,41 +294,23 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
         if self._nruns is None:
             self.get_resource()
 
+        # get job listing
+        psinfo = os.popen( "sinfo | grep twongj01" )
+        lsinfo = psinfo.readlines()
+        for l in lsinfo:
+            l = l.strip()
+            print l
+
+        # check running jobs
+        #query = "select run,subrun from %s where status=2 order by run,subrun asc" %( self._project )
+        #self._api._cursor.execute(query)
+        #results = self._api._cursor.fetchall()
+
         # Fetch runs from DB and process for # runs specified for this instance.
-        ctr = self._nruns
-        for x in self.get_runs(self._project,100):
-
-            # Counter decreases by 1
-            ctr -=1
-
-            (run, subrun) = (int(x[0]), int(x[1]))
-
-            # Report starting
-            self.info('cleaning failed run: run=%d, subrun=%d ...' % (run,subrun))
-
-            status = 1
-
-            out_file = '%s/%s' % (self._out_dir,self._outfile_format % (run,subrun))
-
-            if os.path.isfile(out_file):
-                os.system('rm %s' % out_file)
-
-            # Pretend I'm doing something
-            time.sleep(1)
-
-            # Create a status object to be logged to DB (if necessary)
-            status = ds_status( project = self._project,
-                                run     = int(x[0]),
-                                subrun  = int(x[1]),
-                                seq     = 0,
-                                data    = data,
-                                status  = status )
-            
-            # Log status
-            self.log_status( status )
-
-            # Break from loop if counter became 0
-            if not ctr: break
+        #query =  "select t1.run,t1.subrun,supera,opreco,mcinfo"
+        #query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun) join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._project,self._filetable,self._parent_project)
+        #query += " where t1.status=1 and t3.status=3 order by run, subrun desc limit %d" % (nremaining) 
+        #print query
 
 # A unit test section
 if __name__ == '__main__':
@@ -288,5 +326,5 @@ if __name__ == '__main__':
 
     #test_obj.error_handle()
 
-    #test_obj.validate()
+    test_obj.validate()
 
