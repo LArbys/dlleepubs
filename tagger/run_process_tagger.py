@@ -44,7 +44,6 @@ class tagger(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         self._nruns = int(resource['NRUNS'])
-        self._nruns = 2
         self._parent_project = resource['SOURCE_PROJECT']
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
@@ -201,6 +200,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
                     runningjobs.append( jobid )
                 except:
                     continue
+        self.info("Number of running jobs on queue: %d"%(len(runningjobs)))
 
         # check running jobs
         query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
@@ -213,25 +213,28 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             try:
                 runid = int(x[-1].split("jobid:")[1].split()[0])
             except:
-                print "(%d,%d) not parsed"%(run,subrun),": ",x[-1]
+                self.info( "(%d,%d) not parsed"%(run,subrun)+": "+x[-1] )
                 continue
-            if runid in results:
-                print "(%d,%d) no longer running. updating status,seq to 2,1"
+            self.info( "(%d,%d) run ID %d"%(run,subrun,runid))
+            if runid not in runningjobs:
+                print "(%d,%d) no longer running. updating status,seq to 3,0" % (run,subrun)
+                data = ""
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
-                                    seq     = 1,
+                                    seq     = 0,
                                     data    = data,
-                                    status  = 2 )
+                                    status  = 3 )
+                self.log_status( status )
 
         # check finished jobs
-        # if good, then status 3, seq 0
-        # if bad, then status 1, seq 0
+        # if good, then status 4, seq 0
+        # if bad, then status 10, seq 0
         # check running jobs
 
         query =  "select t1.run,t1.subrun,supera,opreco"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
-        query += " where t1.status=2 and t1.seq=1 order by run, subrun desc"
+        query += " where t1.status=3 order by run, subrun desc"
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of tagger jobs in finished state: %d"%(len(results)))
@@ -261,15 +264,15 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
                     good = True
             except:
                 good = False
+            self.info("Check job returned with %s state"%(str(good)))
 
             if good:
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
                                     seq     = 0,
-                                    status  = 3 )
+                                    status  = 4 )
                 cmd = "rm -rf %s"%(workdir)
-                self.log_status(status)
                 os.system(cmd)
                 self.info(cmd)
             else:
@@ -278,8 +281,8 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
                                     seq     = 0,
-                                    data    = data,
-                                    status  = 10 )                
+                                    status  = 10 )
+            self.log_status(status)
 
 
     ## @brief access DB and retrieves runs for which 1st process failed. Clean up.
