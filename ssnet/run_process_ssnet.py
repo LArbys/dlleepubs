@@ -44,7 +44,7 @@ class ssnet(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         self._nruns = int(resource['NRUNS'])
-        self._nruns = 1
+        self._nruns = 5
         self._parent_project = resource['SOURCE_PROJECT']
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
@@ -69,6 +69,7 @@ class ssnet(ds_project_base):
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         nremaining = self._nruns - len(results)
+        jobslaunched = False
         
         if nremaining<=0:
             self.info("Already running (%d) max number of ssnet jobs (%d)" % (len(results),self._nruns) )
@@ -179,9 +180,14 @@ srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME
             
                 # Log status
                 self.log_status( status )
+                jobslaunched = True
 
             # Break from loop if counter became 0
             #if not ctr: break
+        if jobslaunched:
+            return True
+        else:
+            return False
 
     ## @brief access DB and retrieves processed run for validation
     def validate(self):
@@ -209,6 +215,9 @@ srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME
                 except:
                     continue
 
+        self.info("number of running jobs in slurm queue: %d"%(len(runningjobs)))
+        print runningjobs
+
         # check running jobs
         query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
@@ -217,19 +226,20 @@ srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
+
             try:
                 runid = int(x[-1].split("jobid:")[1].split()[0])
             except:
                 print "(%d,%d) not parsed"%(run,subrun),": ",x[-1]
                 continue
-            if runid in results:
-                print "(%d,%d) no longer running. updating status,seq to 2,1"
+            if runid not in runningjobs:
+                self.info("(%d,%d) no longer running. updating status,seq to 3,0"%(run,subrun))
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
-                                    seq     = 1,
-                                    data    = data,
-                                    status  = 2 )
+                                    seq     = 0,
+                                    status  = 3 )
+                self.log_status( status )
 
         # check finished jobs
         # if good, then status 3, seq 0
@@ -238,7 +248,7 @@ srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME
 
         query =  "select t1.run,t1.subrun,supera,opreco"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
-        query += " where t1.status=2 and t1.seq=1 order by run, subrun desc"
+        query += " where t1.status=3 and t1.seq=0 order by run, subrun desc"
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of ssnet jobs in finished state: %d"%(len(results)))
@@ -254,13 +264,11 @@ srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME
             subrunmod100 = subrun%100
             subrundiv100 = subrun/100
             dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
-            larcvout   = dbdir + "/" + self._outfile_format%("ssnetout-larcv",run,subrun)
-            larliteout = dbdir + "/" + self._outfile_format%("ssnetout-larlite",run,subrun)
+            ssnetout   = dbdir + "/" + self._outfile_format%("ssnetout-larcv",run,subrun)
             jobtag       = 10000*run + subrun
-            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
-            
+            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)            
 
-            pcheck = os.popen("./singularity_check_jobs.sh %s %s %s"%(larcvout,larliteout,supera))
+            pcheck = os.popen("./singularity_check_jobs.sh %s %s"%(ssnetout,supera))
             lcheck = pcheck.readlines()
             good = False
             try:
@@ -270,23 +278,26 @@ srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME
                 good = False
 
             if good:
+                self.info("status of job for (%d,%d) is good"%(run,subrun))
                 status = ds_status( project = self._project,
-                                    run     = int(x[0]),
-                                    subrun  = int(x[1]),
+                                    run     = run,
+                                    subrun  = subrun,
                                     seq     = 0,
-                                    status  = 3 )
+                                    status  = 4 )
                 cmd = "rm -rf %s"%(workdir)
                 self.log_status(status)
                 os.system(cmd)
                 self.info(cmd)
             else:
                 # set to error state
+                self.info("status of job for (%d,%d) is bad"%(run,subrun))
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
                                     seq     = 0,
-                                    data    = data,
                                     status  = 10 )                
+
+            self.log_status(status)
 
 
     ## @brief access DB and retrieves runs for which 1st process failed. Clean up.
@@ -329,9 +340,10 @@ if __name__ == '__main__':
     else:
         test_obj = ssnet()
         
-    test_obj.process_newruns()
+    jobslaunched = test_obj.process_newruns()
 
     #test_obj.error_handle()
 
-    #test_obj.validate()
+    if not jobslaunched:
+        test_obj.validate()
 
