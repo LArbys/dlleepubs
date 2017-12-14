@@ -48,9 +48,11 @@ MASK_ADC = True
 MASK_THRESH = 10.
 SKIP_CH = [0]
 
-MODELMAP={'plane0' : 'segmentation_pixelwise_ikey_plane0_iter_75500.caffemodel',
-          'plane1' : 'segmentation_pixelwise_ikey_plane1_iter_65500.caffemodel',
-          'plane2' : 'segmentation_pixelwise_ikey_plane2_iter_68000.caffemodel'}
+MODELDIR='/cluster/kappa/90-days-archive/wongjiradlab/grid_jobs/ssnet-tuftscluster-scripts'
+MODELMAP={'plane0' : MODELDIR+'/segmentation_pixelwise_ikey_plane0_iter_75500.caffemodel',
+          'plane1' : MODELDIR+'/segmentation_pixelwise_ikey_plane1_iter_65500.caffemodel',
+          'plane2' : MODELDIR+'/segmentation_pixelwise_ikey_plane2_iter_68000.caffemodel'}
+
 PLANEID=''
 MODEL=''
 OUTFILESTEM='larcv_fcn'

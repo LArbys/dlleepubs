@@ -40,7 +40,7 @@ def pick_gpu(mem_min=1,caffe_gpuid=False):
     for gpu in gpu_info[0]:
         mem_available = gpu_info[1][gpu] - gpu_info[0][gpu]
         print "GPU #",gpu," mem available: ",mem_available
-        if mem_available > mem_min:
+        if mem_available > mem_min and gpu_info[2][gpu]<MAX_NUM_JOBS:
             if caffe_gpuid:
                 return (len(gpu_info[0])-1) - gpu
             else:
@@ -48,9 +48,11 @@ def pick_gpu(mem_min=1,caffe_gpuid=False):
     return -1
 
 ### launch job until space found on node
-def run_job(CONTAINER,WORKDIR,OUTFILE,max_tries=360, waitsec=10):
+def run_job(CONTAINER,WORKDIR,OUTFILE,STARTPAUSE,max_tries=360, waitsec=10):
     
     itry = 0
+    print "Pausing %d before starting to prevent collision"%(STARTPAUSE)
+    time.sleep(STARTPAUSE) # so jobs don't collide
 
     while itry<max_tries or max_tries<0:
 
@@ -66,7 +68,7 @@ def run_job(CONTAINER,WORKDIR,OUTFILE,max_tries=360, waitsec=10):
         for gpuid in gpuids:
             print "  [GPU %d] Memory Usage: %d  Num Jobs: %d" % (gpuid,mem_usage[gpuid],num_jobs[gpuid])
 
-        gpuid = pick_gpu(mem_min=2000)
+        gpuid = pick_gpu(mem_min=4000)
         nrunning = num_jobs[gpuid]
         if gpuid<0 or nrunning>=MAX_NUM_JOBS:
             print "Max number of jobs. Waiting for jobs to complete."
@@ -91,5 +93,6 @@ if __name__=="__main__":
     container = sys.argv[1]
     workdir   = sys.argv[2]
     outfile   = sys.argv[3]
+    startwait = int(sys.argv[4])
     
-    run_job( container, workdir, outfile )
+    run_job( container, workdir, outfile, startwait )

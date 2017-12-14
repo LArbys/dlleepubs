@@ -4,13 +4,16 @@
 #  @author twongjirad
 
 # python include
-import time, os, shutil
+import time, os, shutil, commands
 # pub_dbi package include
 from pub_dbi import DBException
 # dstream class include
 from dstream import DSException
 from dstream import ds_project_base
 from dstream import ds_status
+
+PUBDIR = os.environ["PUB_TOP_DIR"]
+PUBSSNETDIR = PUBDIR+"/dllee_dstream/ssnet"
 
 ## @class ssnet
 #  @brief A dummy nu bin file xfer project
@@ -51,6 +54,28 @@ class ssnet(ds_project_base):
         self._filetable      = resource['FILETABLE']        
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._container      = resource['CONTAINER']
+        self._max_jobs       = 7
+        self._node_limit     = 7
+
+    def query_queue(self):
+        """ data about slurm queue pertaining to ssnet jobs"""
+        # PGPU01 jobs
+        pgpu1 = commands.getoutput("squeue | grep twongj01 | grep ssnet | grep pgpu01")
+        lgpu1 = pgpu1.split('\n')
+
+        # PGPU02 jobs
+        pgpu2 = commands.getoutput("squeue | grep twongj01 | grep ssnet | grep pgpu02")
+        lgpu2 = pgpu2.split('\n')
+
+        lv = lgpu1+lgpu2
+
+        info = {"NPGPU01":len(lgpu1),"NPGPU02":len(lgpu2),"jobids":[]}
+        for l in lv:
+            if l.strip()!="":
+                jobid = int(l.split()[0])
+                info["jobids"].append(jobid)
+        
+        return info
 
     ## @brief access DB and retrieves new runs and process
     def process_newruns(self):
@@ -68,26 +93,34 @@ class ssnet(ds_project_base):
         query = "select run,subrun from %s where status=2 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        nremaining = self._nruns - len(results)
+        nremaining = self._max_jobs - len(results)
         jobslaunched = False
         
         if nremaining<=0:
-            self.info("Already running (%d) max number of ssnet jobs (%d)" % (len(results),self._nruns) )
+            self.info("Already running (%d) max number of ssnet jobs (%d)" % (len(results),self._max_jobs) )
             return
 
+        if nremaining>self._nruns:
+            nremaining = self._nruns
+
+
+        # get queue status
+        qinfo = self.query_queue()
         # do we have room on the cards?
         
 
         # Fetch runs from DB and process for # runs specified for this instance.
         query =  "select t1.run,t1.subrun,supera"
-        query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun) join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._project,self._filetable,self._parent_project)
+        query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project, self._filetable)
+        query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
         query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
-        print query
+        #print query
 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
+        ijob=0
         for x in results:
-            print x[0]
+            #print x[0]
 
             # for each:
             # a) make workdir
@@ -127,14 +160,14 @@ class ssnet(ds_project_base):
             print >> rerunlist,jobtag
             rerunlist.close()
 
-            os.system("cp manage_tufts_gpu_jobs.py %s/"%(workdir))  # waits for open gpu slot and runs script
-            os.system("cp choose_gpu.py %s/"%(workdir))             # gpu utility
-            os.system("cp run_pubsgpu_job.sh %s/"%(workdir))        # setups inputs, handles output, calls gpu python program
-            os.system("cp run_ssnet_mcc8.py %s/"%(workdir))         # runs the three planes
-            os.system("cp pyana_mcc8_gpu.py %s/"%(workdir))         # python script that runs caffe for one plane
-            os.system("cp pyana_mcc8_small.prototxt %s/"%(workdir)) # ssnet prototxt and weights
-            os.system("cp *.caffemodel %s/"%(workdir))              # ssnet model weights (60 MB each/180 MB total transfer -- can i be smarter?)
-            os.system("cp *.cfg %s/"%(workdir))                     # larcv configurations
+            os.system("cp %s/manage_tufts_gpu_jobs.py %s/"%(PUBSSNETDIR,workdir))  # waits for open gpu slot and runs script
+            os.system("cp %s/choose_gpu.py %s/"%(PUBSSNETDIR,workdir))             # gpu utility
+            os.system("cp %s/run_pubsgpu_job.sh %s/"%(PUBSSNETDIR,workdir))        # setups inputs, handles output, calls gpu python program
+            os.system("cp %s/run_ssnet_mcc8.py %s/"%(PUBSSNETDIR,workdir))         # runs the three planes
+            os.system("cp %s/pyana_mcc8_gpu.py %s/"%(PUBSSNETDIR,workdir))         # python script that runs caffe for one plane
+            os.system("cp %s/pyana_mcc8_small.prototxt %s/"%(PUBSSNETDIR,workdir)) # ssnet prototxt and weights
+            os.system("cp %s/*.caffemodel %s/"%(PUBSSNETDIR,workdir))              # ssnet model weights (60 MB each/180 MB total transfer -- can i be smarter?)
+            os.system("cp %s/*.cfg %s/"%(PUBSSNETDIR,workdir))                     # larcv configurations
 
             # make submission script
             submitscript="""#!/bin/sh
@@ -150,20 +183,26 @@ CONTAINER=%s
 SSNET_OUTFILENAME=%s
 
 module load singularity
-srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME}
+srun python %s/manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
 """
-            submit = submitscript%(jobtag,workdir,run,subrun,workdir,self._container,ssnetout)
+            submit = submitscript%(jobtag,workdir,run,subrun,workdir,self._container,ssnetout,workdir,ijob*10)
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
+            ijob += 1
 
-            psubmit = os.popen("sbatch -p gpu --nodelist=pgpu[01-02] %s/submit.sh"%(workdir))
-            lsubmit = psubmit.readlines()
             submissionok = False
+            if qinfo["NPGPU01"]<self._node_limit:
+                psubmit = os.popen("sbatch -p gpu --exclude=omega025,alpha025,pgpu02 %s/submit.sh"%(workdir))
+            elif qinfo["NPGPU02"]<self._node_limit:
+                psubmit = os.popen("sbatch -p gpu --exclude=omega025,alpha025,pgpu01 %s/submit.sh"%(workdir))
+            else:
+                psubmit = ['']
+
+            lsubmit = psubmit.readlines()
             submissionid = ""
             for l in lsubmit:
                 l = l.strip()
-                print l
                 if "Submitted batch job" in l:
                     submissionid = l.split()[-1].strip()
                     submissionok = True
@@ -202,7 +241,7 @@ srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep twongj01" )
+        psinfo = os.popen( "squeue | grep twongj01 | grep ssnet" )
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -216,7 +255,7 @@ srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME
                     continue
 
         self.info("number of running jobs in slurm queue: %d"%(len(runningjobs)))
-        print runningjobs
+        #print runningjobs
 
         # check running jobs
         query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
@@ -230,7 +269,7 @@ srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME
             try:
                 runid = int(x[-1].split("jobid:")[1].split()[0])
             except:
-                print "(%d,%d) not parsed"%(run,subrun),": ",x[-1]
+                self.info( "(%d,%d) not parsed"%(run,subrun)+": %s"%(x[-1]))
                 continue
             if runid not in runningjobs:
                 self.info("(%d,%d) no longer running. updating status,seq to 3,0"%(run,subrun))
@@ -268,7 +307,7 @@ srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME
             jobtag       = 10000*run + subrun
             workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)            
 
-            pcheck = os.popen("./singularity_check_jobs.sh %s %s"%(ssnetout,supera))
+            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s"%(PUBSSNETDIR,ssnetout,supera))
             lcheck = pcheck.readlines()
             good = False
             try:
@@ -312,23 +351,27 @@ srun python manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME
         if self._nruns is None:
             self.get_resource()
 
-        # get job listing
-        psinfo = os.popen( "sinfo | grep twongj01" )
-        lsinfo = psinfo.readlines()
-        for l in lsinfo:
-            l = l.strip()
-            print l
-
         # check running jobs
-        #query = "select run,subrun from %s where status=2 order by run,subrun asc" %( self._project )
-        #self._api._cursor.execute(query)
-        #results = self._api._cursor.fetchall()
+        query = "select run,subrun from %s where status=10 order by run,subrun asc limit %d" %( self._project, self._nruns*10 )
+        self._api._cursor.execute(query)
+        results = self._api._cursor.fetchall()
 
         # Fetch runs from DB and process for # runs specified for this instance.
-        #query =  "select t1.run,t1.subrun,supera,opreco,mcinfo"
-        #query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun) join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._project,self._filetable,self._parent_project)
-        #query += " where t1.status=1 and t3.status=3 order by run, subrun desc limit %d" % (nremaining) 
-        #print query
+        for x in results:
+            # we clean out the workdir
+            run = int(x[0])
+            subrun = int(x[1])
+            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
+            os.system("rm -rf %s"%(workdir))
+            # reset the status
+            data = ''
+            status = ds_status( project = self._project,
+                                run     = int(x[0]),
+                                subrun  = int(x[1]),
+                                seq     = 0,
+                                data    = data,
+                                status  = 1 )
+            self.log_status(status)
 
 # A unit test section
 if __name__ == '__main__':
@@ -339,11 +382,11 @@ if __name__ == '__main__':
         test_obj = ssnet(sys.argv[1])
     else:
         test_obj = ssnet()
-        
+
+    jobslaunched = False
     jobslaunched = test_obj.process_newruns()
-
-    #test_obj.error_handle()
-
     if not jobslaunched:
         test_obj.validate()
+        test_obj.error_handle()
+
 

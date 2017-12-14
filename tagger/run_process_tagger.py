@@ -12,6 +12,9 @@ from dstream import DSException
 from dstream import ds_project_base
 from dstream import ds_status
 
+PUBDIR = os.environ["PUB_TOP_DIR"]
+PUBTAGGERDIR = PUBDIR+"/dllee_dstream/tagger"
+
 ## @class tagger
 #  @brief A dummy nu bin file xfer project
 #  @details
@@ -51,9 +54,12 @@ class tagger(ds_project_base):
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._tagger_cfg     = resource['TAGGERCFG']
         self._container      = resource['CONTAINER']
+        self._max_jobs       = 100
 
     ## @brief access DB and retrieves new runs and process
     def process_newruns(self):
+
+        jobslaunched = False
 
         # Attempt to connect DB. If failure, abort
         if not self.connect():
@@ -68,11 +74,14 @@ class tagger(ds_project_base):
         query = "select run,subrun from %s where status=2 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        nremaining = self._nruns - len(results)
+        nremaining = self._max_jobs - len(results)
         
         if nremaining<=0:
-            self.info("Already running (%d) max number of tagger jobs (%d)" % (len(results),self._nruns) )
-            return
+            self.info("Already running (%d) max number of tagger jobs (%d)" % (len(results),self._max_jobs) )
+            return jobslaunched
+
+        if nremaining>self._max_jobs:
+            nremaining = self._max_jobs
 
         # Fetch runs from DB and process for # runs specified for this instance.
         query =  "select t1.run,t1.subrun,supera,opreco,mcinfo"
@@ -119,15 +128,14 @@ class tagger(ds_project_base):
             larcv_input.close()
             larlite_input.close()
 
-
             os.system("cp %s %s/"%(self._tagger_cfg,workdir))
-            os.system("cp run_taggerpubs_job.sh %s/"%(workdir))
+            os.system("cp %s/run_taggerpubs_job.sh %s/"%(PUBTAGGERDIR,workdir))
 
             # make submission script
             submitscript="""#!/bin/sh
 #
 #SBATCH --job-name=tagger_%d
-#SBATCH --output=log_tagger_%d_%d.txt
+#SBATCH --output=%s/log_tagger_%d_%d.txt
 #SBATCH --ntasks=1
 #SBATCH --time=480:00
 #SBATCH --mem-per-cpu=4000
@@ -143,7 +151,7 @@ LARLITE_OUTFILENAME=%s
 module load singularity
 srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpubs_job.sh ${CONFIG} ${INPUTLISTDIR} ${LARCV_OUTFILENAME} ${LARLITE_OUTFILENAME} ${JOBIDLIST}"
 """
-            submit = submitscript%(jobtag,run,subrun,workdir,self._container,os.path.basename(self._tagger_cfg),larcvout,larliteout)
+            submit = submitscript%(jobtag,workdir,run,subrun,workdir,self._container,os.path.basename(self._tagger_cfg),larcvout,larliteout)
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
@@ -154,10 +162,11 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             submissionid = ""
             for l in lsubmit:
                 l = l.strip()
-                print l
                 if "Submitted batch job" in l:
                     submissionid = l.split()[-1].strip()
                     submissionok = True
+                    self.info("Launched tagger job for (%d,%d)"%(run,subrun))
+                    jobslaunched = True
 
             # Create a status object to be logged to DB (if necessary)
             if submissionok:
@@ -174,6 +183,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
 
             # Break from loop if counter became 0
             #if not ctr: break
+        return jobslaunched
 
     ## @brief access DB and retrieves processed run for validation
     def validate(self):
@@ -256,7 +266,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
             
 
-            pcheck = os.popen("./singularity_check_jobs.sh %s %s %s"%(larcvout,larliteout,supera))
+            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBTAGGERDIR,larcvout,larliteout,supera))
             lcheck = pcheck.readlines()
             good = False
             try:
@@ -297,23 +307,29 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
         if self._nruns is None:
             self.get_resource()
 
-        # get job listing
-        psinfo = os.popen( "sinfo | grep twongj01" )
-        lsinfo = psinfo.readlines()
-        for l in lsinfo:
-            l = l.strip()
-            print l
 
         # check running jobs
-        #query = "select run,subrun from %s where status=2 order by run,subrun asc" %( self._project )
-        #self._api._cursor.execute(query)
-        #results = self._api._cursor.fetchall()
+        query = "select run,subrun from %s where status=10 order by run,subrun asc limit %d" %( self._project, self._nruns*10 )
+        self._api._cursor.execute(query)
+        results = self._api._cursor.fetchall()
 
         # Fetch runs from DB and process for # runs specified for this instance.
-        #query =  "select t1.run,t1.subrun,supera,opreco,mcinfo"
-        #query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun) join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._project,self._filetable,self._parent_project)
-        #query += " where t1.status=1 and t3.status=3 order by run, subrun desc limit %d" % (nremaining) 
-        #print query
+        for x in results:
+            # we clean out the workdir
+            run = int(x[0])
+            subrun = int(x[1])
+            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
+            os.system("rm -rf %s"%(workdir))
+            # reset the status
+            data = ''
+            status = ds_status( project = self._project,
+                                run     = int(x[0]),
+                                subrun  = int(x[1]),
+                                seq     = 0,
+                                data    = data,
+                                status  = 1 )
+            self.log_status(status)
+            
 
 # A unit test section
 if __name__ == '__main__':
@@ -324,10 +340,10 @@ if __name__ == '__main__':
         test_obj = tagger(sys.argv[1])
     else:
         test_obj = tagger()
-        
-    test_obj.process_newruns()
-
-    #test_obj.error_handle()
-
-    test_obj.validate()
+     
+    jobslaunched = False
+    jobslaunched = test_obj.process_newruns()
+    if not jobslaunched:
+        test_obj.validate()
+        test_obj.error_handle()
 
