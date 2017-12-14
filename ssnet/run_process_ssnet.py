@@ -54,8 +54,8 @@ class ssnet(ds_project_base):
         self._filetable      = resource['FILETABLE']        
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._container      = resource['CONTAINER']
-        self._max_jobs       = 7
-        self._node_limit     = 7
+        self._max_jobs       = 16
+        self._node_limit     = 16
 
     def query_queue(self):
         """ data about slurm queue pertaining to ssnet jobs"""

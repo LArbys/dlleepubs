@@ -1,7 +1,7 @@
 import os,sys,time
 import commands
 
-MAX_NUM_JOBS=7
+MAX_NUM_JOBS=8
 
 ### taken from pubs script, fetch gpu info, not for users to understand
 def ls_gpu():
@@ -68,7 +68,7 @@ def run_job(CONTAINER,WORKDIR,OUTFILE,STARTPAUSE,max_tries=360, waitsec=10):
         for gpuid in gpuids:
             print "  [GPU %d] Memory Usage: %d  Num Jobs: %d" % (gpuid,mem_usage[gpuid],num_jobs[gpuid])
 
-        gpuid = pick_gpu(mem_min=4000)
+        gpuid = pick_gpu(mem_min=2000)
         nrunning = num_jobs[gpuid]
         if gpuid<0 or nrunning>=MAX_NUM_JOBS:
             print "Max number of jobs. Waiting for jobs to complete."

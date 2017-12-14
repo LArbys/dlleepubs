@@ -17,6 +17,8 @@ PROCID=0
 
 export PATH=/usr/local/nvidia:${PATH}
 export LD_LIBRARY_PATH=/usr/local/nvidia:${LD_LIBRARY_PATH}
+export MKL_NUM_THREADS=1
+export OMP_NUM_THREADS=1
 
 # ROOT6
 source /usr/local/bin/thisroot.sh
@@ -35,6 +37,8 @@ echo "INPUTLIST DIR: "${inputlist_dir}
 echo "OUTPUT FILE: "${outputfile}
 echo "JOBID_LIST:"${jobid_list}
 echo "GPU ID: "${gpuid}
+echo "MKL_NUM_THREADS=${MKL_NUM_THREADS}"
+echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 
 # check that the process number is greater than the number of job ids
 let NUM_PROCS=`cat ${jobid_list} | wc -l`
