@@ -1,3 +1,11 @@
+# Defining a PUBS Run Table
+
+## Assumptions
+
+* We have transfered some files from FNAL into a set of folders. Typically, a `supera` folder holding larcv images and a `larlite` folder holding various larlite files make by litemaker. 
+* The run table expects there to be one larcv file and opreco, reco2d, mcinfo larlite files per entry.
+* The scripts do not use the filenames to the group the files into entries, it uses the first (run,subrun) in each file to match them.
+
 ## Steps to define a run table
 
 * Change `submit.sh` to point to the supera and larlite folders
