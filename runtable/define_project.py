@@ -16,7 +16,7 @@ def insert( runtable, dbconn, logger, ds, entryline ):
     reco2d = data[5].split(":")[-1]
     ismc = False
     if "mcinfo" in entryline:
-        mcinfo = data[5].split(":")[-1]
+        mcinfo = data[6].split(":")[-1]
         ismc = True
     else:
         mcinfo = "NULL"

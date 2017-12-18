@@ -2,11 +2,11 @@ import os,sys
 import ROOT as rt
 from larcv import larcv
 
-def extract_rse_larcv( rootfilepath ):
+def extract_rse_larcv( rootfilepath, iopset ):
     if not type(rootfilepath) is str:
         raise ValueError("rootfilepath should be a string")
 
-    io = larcv.IOManager()
+    io = larcv.IOManager( iopset )
     io.add_in_file( rootfilepath )
     io.initialize()
     io.read_entry(0)
@@ -15,7 +15,17 @@ def extract_rse_larcv( rootfilepath ):
     run     = int(imgdata.run())
     subrun  = int(imgdata.subrun())
     event   = int(imgdata.event())
-    return (run,subrun,event)
+    io.finalize()
+
+    jobid=int(os.path.basename(rootfilepath).split("_")[1].split(".")[0])
+
+    return (run,subrun,event),jobid
+
+def match_rse_to_fname( rootfilepath, jobid2rse ):
+    jobid=int(os.path.basename(rootfilepath).split("_")[1].split(".")[0])
+    if jobid in jobid2rse:
+        return jobid2rse
+    return None
 
 def extract_rse_larlite( rootfilepath ):
     if not type(rootfilepath) is str:
@@ -33,7 +43,7 @@ def extract_rse_larlite( rootfilepath ):
     return (run,subrun,event)
 
 
-def catalog_supera_files( filefolders, filedict ):
+def catalog_supera_files( filefolders, iopset, filedict, jobid2rse ):
     folderlist = filefolders
     if type(filefolders) is str:
         folderlist = []
@@ -47,13 +57,15 @@ def catalog_supera_files( filefolders, filedict ):
             fpath = folder + "/" + f.strip()
     
             try:
-                rse = extract_rse_larcv( fpath )
+                rse,jobid = extract_rse_larcv( fpath, iopset )
             except:
                 print "Trouble parsing for larcv",fpath
                 continue
-            print "supera",rse,f
+            print "supera",rse,jobid,f
             if rse not in filedict:
                 filedict[rse] = {}
+            if jobid not in jobid2rse:
+                jobid2rse[jobid] = rse
             filedict[rse]["supera"] = fpath
     return
 
@@ -92,9 +104,13 @@ if __name__=="__main__":
         folders.append(i)
 
     print folders
+    larcviocfg="""Name: IOManager Verbosity: 02 IOMode: 0 ReadOnlyDataType: ["wire"]  ReadOnlyDataName: [0]"""
+
+    iopset = larcv.PSet("IOManager",larcviocfg)
 
     filedict = {}
-    catalog_supera_files( folders, filedict )
+    jobid2rse = {}
+    catalog_supera_files( folders, iopset, filedict, jobid2rse )
     catalog_larlite_files( folders, filedict )
 
     rselist = filedict.keys()
