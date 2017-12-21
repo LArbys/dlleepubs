@@ -36,8 +36,8 @@ print "PUB interfaces start"
 runtable = sys.argv[1]
 flist    = sys.argv[2]
 
-os.system("~/pubs/sbin/remove_runtable %s"%(runtable))
-os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c 'DROP TABLE %s_paths;'"%(runtable))
+#os.system("~/pubs/sbin/remove_runtable %s"%(runtable))
+#os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c 'DROP TABLE %s_paths;'"%(runtable))
 
 dumptablescmd = "psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c '\dt'"
 pdump = os.popen(dumptablescmd)

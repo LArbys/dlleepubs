@@ -80,14 +80,14 @@ class tagger(ds_project_base):
             self.info("Already running (%d) max number of tagger jobs (%d)" % (len(results),self._max_jobs) )
             return jobslaunched
 
-        if nremaining>self._max_jobs:
-            nremaining = self._max_jobs
+        if nremaining>self._nruns:
+            nremaining = self._nruns
 
         # Fetch runs from DB and process for # runs specified for this instance.
         query =  "select t1.run,t1.subrun,supera,opreco,mcinfo"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun) join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._project,self._filetable,self._parent_project)
         query += " where t1.status=1 and t3.status=3 order by run, subrun desc limit %d" % (nremaining) 
-        print query
+        #print query
 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
@@ -113,7 +113,7 @@ class tagger(ds_project_base):
             larcvout   = dbdir + "/" + self._outfile_format%("taggerout-larcv",run,subrun)
             larliteout = dbdir + "/" + self._outfile_format%("taggerout-larlite",run,subrun)
 
-            print x
+            #print x
             jobtag       = 10000*run + subrun
             workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
             inputlistdir = workdir + "/inputlists"
@@ -198,7 +198,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep twongj01" )
+        psinfo = os.popen( "squeue | grep twongj01 | grep tagger" )
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -244,7 +244,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
 
         query =  "select t1.run,t1.subrun,supera,opreco"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
-        query += " where t1.status=3 order by run, subrun desc"
+        query += " where t1.status=3 order by run, subrun asc limit %d" % (self._nruns)
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of tagger jobs in finished state: %d"%(len(results)))

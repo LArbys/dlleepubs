@@ -54,8 +54,10 @@ class ssnet(ds_project_base):
         self._filetable      = resource['FILETABLE']        
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._container      = resource['CONTAINER']
-        self._max_jobs       = 16
-        self._node_limit     = 16
+        self._container_alphaomega = "/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-dllee-ssnet/singularity-dllee-ssnet-nvidia375.20.img"
+        self._max_jobs       = 38
+        self._pgpu_node_limit = 16
+        self._ao_node_limit   = 3
 
     def query_queue(self):
         """ data about slurm queue pertaining to ssnet jobs"""
@@ -67,9 +69,17 @@ class ssnet(ds_project_base):
         pgpu2 = commands.getoutput("squeue | grep twongj01 | grep ssnet | grep pgpu02")
         lgpu2 = pgpu2.split('\n')
 
-        lv = lgpu1+lgpu2
+        # alpha025 jobs
+        palpha = commands.getoutput("squeue | grep twongj01 | grep ssnet | grep alpha025")
+        lalpha = palpha.split('\n')
 
-        info = {"NPGPU01":len(lgpu1),"NPGPU02":len(lgpu2),"jobids":[]}
+        # omega025 jobs
+        pomega = commands.getoutput("squeue | grep twongj01 | grep ssnet | grep omega025")
+        lomega = pomega.split('\n')
+
+        lv = lgpu1+lgpu2+lalpha+lomega
+
+        info = {"NPGPU01":len(lgpu1),"NPGPU02":len(lgpu2),"NALPHA025":len(lalpha),"NOMEGA025":len(lomega),"jobids":[]}
         for l in lv:
             if l.strip()!="":
                 jobid = int(l.split()[0])
@@ -106,6 +116,8 @@ class ssnet(ds_project_base):
 
         # get queue status
         qinfo = self.query_queue()
+        print qinfo
+
         # do we have room on the cards?
         
 
@@ -160,7 +172,6 @@ class ssnet(ds_project_base):
             print >> rerunlist,jobtag
             rerunlist.close()
 
-            os.system("cp %s/manage_tufts_gpu_jobs.py %s/"%(PUBSSNETDIR,workdir))  # waits for open gpu slot and runs script
             os.system("cp %s/choose_gpu.py %s/"%(PUBSSNETDIR,workdir))             # gpu utility
             os.system("cp %s/run_pubsgpu_job.sh %s/"%(PUBSSNETDIR,workdir))        # setups inputs, handles output, calls gpu python program
             os.system("cp %s/run_ssnet_mcc8.py %s/"%(PUBSSNETDIR,workdir))         # runs the three planes
@@ -168,6 +179,28 @@ class ssnet(ds_project_base):
             os.system("cp %s/pyana_mcc8_small.prototxt %s/"%(PUBSSNETDIR,workdir)) # ssnet prototxt and weights
             os.system("cp %s/*.caffemodel %s/"%(PUBSSNETDIR,workdir))              # ssnet model weights (60 MB each/180 MB total transfer -- can i be smarter?)
             os.system("cp %s/*.cfg %s/"%(PUBSSNETDIR,workdir))                     # larcv configurations
+
+            # determine submission node on tufts
+            submitnode = ""
+            if qinfo["NPGPU01"]<self._pgpu_node_limit:
+                submitnode="NPGPU01"
+            elif qinfo["NALPHA025"]<self._ao_node_limit:
+                submitnode="NALPHA025"
+            elif qinfo["NOMEGA025"]<self._ao_node_limit:
+                submitnode="NOMEGA025"
+            elif qinfo["NPGPU02"]<self._pgpu_node_limit:
+                submitnode="NPGPU02" # not working yet
+            else:
+                submitnode=""
+
+            if submitnode=="":
+                continue
+
+            managescript = "manage_tufts_gpu_jobs.py"
+            container = self._container
+            if submitnode in ["NOMEGA025","NALPHA025"]:
+                managescript = "manage_tufts_gpu_jobs_alphaomega.py"
+                container = self._container_alphaomega
 
             # make submission script
             submitscript="""#!/bin/sh
@@ -183,19 +216,24 @@ CONTAINER=%s
 SSNET_OUTFILENAME=%s
 
 module load singularity
-srun python %s/manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
+srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
 """
-            submit = submitscript%(jobtag,workdir,run,subrun,workdir,self._container,ssnetout,workdir,ijob*10)
+            submit = submitscript%(jobtag,workdir,run,subrun,workdir,container,ssnetout,workdir,managescript,ijob*10)
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
             ijob += 1
 
             submissionok = False
-            if qinfo["NPGPU01"]<self._node_limit:
+            os.system("cp %s/%s %s/"%(PUBSSNETDIR,managescript,workdir))  # waits for open gpu slot and runs script
+            if submitnode=="NPGPU01":
                 psubmit = os.popen("sbatch -p gpu --exclude=omega025,alpha025,pgpu02 %s/submit.sh"%(workdir))
-            elif qinfo["NPGPU02"]<self._node_limit:
+            elif submitnode=="NPGPU02":
                 psubmit = os.popen("sbatch -p gpu --exclude=omega025,alpha025,pgpu01 %s/submit.sh"%(workdir))
+            elif submitnode=="NALPHA025":
+                psubmit = os.popen("sbatch -p gpu --exclude=omega025,pgpu01,pgpu02 %s/submit.sh"%(workdir))
+            elif submitnode=="NOMEGA025":
+                psubmit = os.popen("sbatch -p gpu --exclude=alpha025,pgpu01,pgpu02 %s/submit.sh"%(workdir))
             else:
                 psubmit = ['']
 
@@ -209,6 +247,8 @@ srun python %s/manage_tufts_gpu_jobs.py ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILEN
 
             # Create a status object to be logged to DB (if necessary)
             if submissionok:
+                qinfo[submitnode] += 1
+                self.info("Submitted job for (%d,%d) to %s. Num Jobs on node: %d"%(run,subrun,submitnode,qinfo[submitnode]))
                 data = "jobid:"+submissionid
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
