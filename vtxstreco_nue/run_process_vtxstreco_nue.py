@@ -143,7 +143,8 @@ class vtxstreconue(ds_project_base):
             inputdbdir      = self._input_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
             ssnetinput      = inputdbdir + "/" + self._input_format%("ssnetout-larcv",run,subrun)
             outdbdir        = self._out_dir + "%s/%03d/%02d/%03d/%02d/"%(self._runtag,rundiv100,runmod100,subrundiv100,subrunmod100)
-            vtxstreconueout = outdbdir + "/" + self._outfile_format%("vtxstreconue-larcv",run,subrun)
+            vtxstreconueout = outdbdir + "/" + self._outfile_format%("vtxstreconue-out",run,subrun)
+            vtxstreconueana = outdbdir + "/" + self._outfile_format%("vtxstreconue-ana",run,subrun)
             vtxstreconuepickle = outdbdir + "/" + self._outpickle_format%("vtxstreconue-pickle",run,subrun)
 
             # PREPARE WORKDIR
@@ -208,19 +209,20 @@ WORKDIR=%s
 INPUTLISTDIR=%s
 JOBID_LIST=%s
 VTXSTRECONUE_OUTFILENAME=%s
+VTXSTRECONUE_ANAFILENAME=%s
 VTXPICKLE_OUTFILENAME=%s
 
 module load singularity
-srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source wrapper_reco_job.sh ${WORKDIR} ${INPUTLISTDIR} ${JOBID_LIST} ${VTXSTRECONUE_OUTFILENAME} ${VTXPICKLE_OUTFILENAME}"
+srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source wrapper_reco_job.sh ${WORKDIR} ${INPUTLISTDIR} ${JOBID_LIST} ${VTXSTRECONUE_OUTFILENAME} ${VTXSTRECONUE_ANAFILENAME} ${VTXPICKLE_OUTFILENAME}"
 """
-            submit = submitscript%(jobtag,workdir,run,subrun,self._container,workdir,inputlistdir,workdir+"/runlist.txt",vtxstreconueout,vtxstreconuepickle)
+            submit = submitscript%(jobtag,workdir,run,subrun,self._container,workdir,inputlistdir,workdir+"/runlist.txt",vtxstreconueout,vtxstreconueana,outdbdir)
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
             ijob += 1
 
             submissionok = False
-            if False:
+            if True: # use this bool to turn off for testing
                 psubmit = os.popen("sbatch %s/submit.sh"%(workdir))
                 lsubmit = psubmit.readlines()
                 submissionid = ""
@@ -232,8 +234,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source wrapper_reco
 
             # Create a status object to be logged to DB (if necessary)
             if submissionok:
-                qinfo[submitnode] += 1
-                self.info("Submitted job for (%d,%d) to %s. Num Jobs on node: %d"%(run,subrun,submitnode,qinfo[submitnode]))
+                self.info("Submitted job for (%d,%d)"%(run,subrun))
                 data = "jobid:"+submissionid
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
@@ -247,7 +248,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source wrapper_reco
                 jobslaunched = True
 
             # Break from loop if counter became 0
-            if True: break
+            #if True: break
         if jobslaunched:
             return True
         else:
