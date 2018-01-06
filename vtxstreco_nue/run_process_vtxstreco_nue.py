@@ -378,7 +378,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source wrapper_reco
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
                                     seq     = 0,
-                                    status  = 2 )                
+                                    status  = 10 )                
 
             self.log_status(status)
 
@@ -428,7 +428,7 @@ if __name__ == '__main__':
         test_obj = vtxstreconue()
 
     jobslaunched = False
-    #jobslaunched = test_obj.process_newruns()
+    jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
     #    #test_obj.error_handle()
