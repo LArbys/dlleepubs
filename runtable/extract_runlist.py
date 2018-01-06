@@ -2,7 +2,7 @@ import os,sys
 import ROOT as rt
 from larcv import larcv
 
-def extract_rse_larcv( rootfilepath, iopset ):
+def extract_rse_larcv( rootfilepath, iopset, producer="wire" ):
     if not type(rootfilepath) is str:
         raise ValueError("rootfilepath should be a string")
 
@@ -11,13 +11,16 @@ def extract_rse_larcv( rootfilepath, iopset ):
     io.initialize()
     io.read_entry(0)
 
-    imgdata = io.get_data( larcv.kProductImage2D, "wire" )
+    imgdata = io.get_data( larcv.kProductImage2D, producer )
     run     = int(imgdata.run())
     subrun  = int(imgdata.subrun())
     event   = int(imgdata.event())
     io.finalize()
 
-    jobid=int(os.path.basename(rootfilepath).split("_")[1].split(".")[0])
+    try:
+        jobid=int(os.path.basename(rootfilepath).split("_")[1].split(".")[0])
+    except:
+        jobid=run*10000+subrun
 
     return (run,subrun,event),jobid
 
@@ -52,12 +55,12 @@ def catalog_supera_files( filefolders, iopset, filedict, jobid2rse ):
     for folder in folderlist:
         superafiles = os.listdir( folder )
         for f in superafiles:
-            if ".root" not in f or "larcv" not in f:
+            if ".root" not in f or "larcv" not in f or "larcv_mctruth" in f:
                 continue
             fpath = folder + "/" + f.strip()
     
             try:
-                rse,jobid = extract_rse_larcv( fpath, iopset )
+                rse,jobid = extract_rse_larcv( fpath, iopset, "wire" )
             except:
                 print "Trouble parsing for larcv",fpath
                 continue
@@ -67,6 +70,32 @@ def catalog_supera_files( filefolders, iopset, filedict, jobid2rse ):
             if jobid not in jobid2rse:
                 jobid2rse[jobid] = rse
             filedict[rse]["supera"] = fpath
+    return
+
+def catalog_larcvtruth_files( filefolders, iopset, filedict, jobid2rse ):
+    folderlist = filefolders
+    if type(filefolders) is str:
+        folderlist = []
+        folderlist.append(filefolders)
+
+    for folder in folderlist:
+        superafiles = os.listdir( folder )
+        for f in superafiles:
+            if ".root" not in f or "larcv_mctruth" not in f:
+                continue
+            fpath = folder + "/" + f.strip()
+    
+            try:
+                rse,jobid = extract_rse_larcv( fpath, iopset, "segment" )
+            except:
+                print "Trouble parsing for larcv",fpath
+                continue
+            print "larcvtruth",rse,jobid,f
+            if rse not in filedict:
+                filedict[rse] = {}
+            if jobid not in jobid2rse:
+                jobid2rse[jobid] = rse
+            filedict[rse]["larcvtruth"] = fpath
     return
 
 def catalog_larlite_files( filefolders, filedict ):
@@ -111,6 +140,7 @@ if __name__=="__main__":
     filedict = {}
     jobid2rse = {}
     catalog_supera_files( folders, iopset, filedict, jobid2rse )
+    #catalog_larcvtruth_files( folders, iopset, filedict, jobid2rse )
     catalog_larlite_files( folders, filedict )
 
     rselist = filedict.keys()
@@ -124,7 +154,10 @@ if __name__=="__main__":
         print >> f,rse[0],'\t',rse[1],'\t',rse[2],'\t',"supera:"+fdict["supera"],'\t',"opreco:"+fdict["opreco"],'\t',"reco2d:"+fdict["reco2d"],
         if "mcinfo" in fdict:
             print >> f,'\t',"mcinfo:"+fdict["mcinfo"],
+        if "larcvtruth" in fdict:
+            print >> f,'\t',"larcvtruth:"+fdict["larcvtruth"],
         print >>f,'\n'
+            
 
     f.close()
             

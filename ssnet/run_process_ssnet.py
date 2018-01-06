@@ -209,7 +209,7 @@ class ssnet(ds_project_base):
 #SBATCH --output=%s/log_ssnet_%d_%d.txt
 #SBATCH --ntasks=1
 #SBATCH --time=480:00
-#SBATCH --mem-per-cpu=4000
+#SBATCH --mem-per-cpu=12000
 
 WORKDIR=%s
 CONTAINER=%s
@@ -427,6 +427,6 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        test_obj.error_handle()
+        #test_obj.error_handle()
 
 

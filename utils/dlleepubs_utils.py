@@ -129,8 +129,9 @@ class dlleepubsutils(ds_project_base):
                 if fname=="ssnet-larcv":
                     fname = "ssnetout_larcv"
                 flink = folderpaths[dirtype] + "/"+fname+"_%d.root"%(jobid)
-                cmd = "ln -s %s %s"%(forig,flink)
-                os.system(cmd)
+                if not os.path.exists(flink):
+                    cmd = "ln -s %s %s"%(forig,flink)
+                    os.system(cmd)
         return
         
 
@@ -148,7 +149,15 @@ if __name__ == '__main__':
     #completed = test_obj.fetch_completed_entries( sys.argv[1] )
     #print "Number of completed entries: ",len(completed)
 
-    test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v4_cocktail_p00", "mcc8v4_cocktail_p00" )
+    #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v4_cocktail_p00", "mcc8v4_cocktail_p00" )
+    #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v4_cocktail_p00", "mcc8v4_cocktail_p00" )
+    #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v4_cocktail_p01", "mcc8v4_cocktail_p01" )
+    #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v4_cocktail_p02", "mcc8v4_cocktail_p02" )
+    #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v4_cocktail_p03", "mcc8v4_cocktail_p03" )
+    #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v4_cocktail_p04", "mcc8v4_cocktail_p04" )
+    #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v3_corsika_p00", "corsika_mcc8v3_p00" )
+    #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v3_corsika_p01", "corsika_mcc8v3_p01" )
+    test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v3_corsika_p02", "corsika_mcc8v3_p02" )
 
     
 
