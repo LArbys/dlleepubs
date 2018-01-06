@@ -79,6 +79,24 @@ class vtxstreconue(ds_project_base):
         info["numjobs"] = len(info["jobids"])
         return info
 
+    def get_input_output( self, run, subrun, jobtag ):
+        """ return input and output filenames for run,subrun file """
+        runmod100 = run%100
+        rundiv100 = run/100
+        subrunmod100 = subrun%100
+        subrundiv100 = subrun/100
+
+        # job variables
+        jobtag          = 10000*run + subrun
+        inputdbdir      = self._input_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
+        ssnetinput      = inputdbdir + "/" + self._input_format%("ssnetout-larcv",run,subrun)
+        outdbdir        = self._out_dir + "%s/%03d/%02d/%03d/%02d/"%(self._runtag,rundiv100,runmod100,subrundiv100,subrunmod100)
+        vtxstreconueout = outdbdir + "/" + self._outfile_format%("vtxstreconue-out",run,subrun)
+        vtxstreconueana = outdbdir + "/" + self._outfile_format%("vtxstreconue-ana",run,subrun)
+        vtxstreconuepickle = outdbdir + "/" + self._outpickle_format%("vtxstreconue-pickle",run,subrun)
+        
+        return ssnetinput, vtxstreconueout, vtxstreconueana, vtxstreconuepickle, inputdbdir, outdbdir
+
     ## @brief access DB and retrieves new runs and process
     def process_newruns(self):
 
@@ -311,7 +329,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source wrapper_reco
         # if bad, then status 1, seq 0
         # check running jobs
 
-        query =  "select t1.run,t1.subrun,supera,opreco"
+        query =  "select t1.run,t1.subrun,supera"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
         query += " where t1.status=3 and t1.seq=0 order by run, subrun desc"
         self._api._cursor.execute(query)
@@ -321,20 +339,19 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source wrapper_reco
             run    = int(x[0])
             subrun = int(x[1])
             supera = x[2]
-            opreco = x[3]
 
-            # form output file names
-            runmod100 = run%100
-            rundiv100 = run/100
-            subrunmod100 = subrun%100
-            subrundiv100 = subrun/100
-            dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
-            vtxstreconueout   = dbdir + "/" + self._outfile_format%("vtxstreconueout-larcv",run,subrun)
+            # form output file names/workdir
             jobtag       = 10000*run + subrun
-            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)            
+            ssnetinput, vtxstreconueout, vtxstreconueana, vtxstreconuepickle, inputdbdir, outputdbdir = self.get_input_output( run, subrun, jobtag )
+            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
 
-            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s"%(PUBVTXSTRECONUEDIR,vtxstreconueout,supera))
+            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBVTXSTRECONUEDIR,vtxstreconueout,vtxstreconueana,supera))
             lcheck = pcheck.readlines()
+            print "---- check results -----"
+            for l in lcheck:
+                print l.strip()
+            print "------------------------"
+            
             good = False
             try:
                 if lcheck[-1].strip()=="True":
@@ -349,10 +366,11 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source wrapper_reco
                                     subrun  = subrun,
                                     seq     = 0,
                                     status  = 4 )
-                cmd = "rm -rf %s"%(workdir)
-                self.log_status(status)
-                os.system(cmd)
-                self.info(cmd)
+                if False:
+                    cmd = "rm -rf %s"%(workdir)
+                    self.log_status(status)
+                    os.system(cmd)
+                    self.info(cmd)
             else:
                 # set to error state
                 self.info("status of job for (%d,%d) is bad"%(run,subrun))
@@ -360,7 +378,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source wrapper_reco
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
                                     seq     = 0,
-                                    status  = 10 )                
+                                    status  = 2 )                
 
             self.log_status(status)
 
@@ -410,9 +428,9 @@ if __name__ == '__main__':
         test_obj = vtxstreconue()
 
     jobslaunched = False
-    jobslaunched = test_obj.process_newruns()
-    #if not jobslaunched:
-    #    test_obj.validate()
+    #jobslaunched = test_obj.process_newruns()
+    if not jobslaunched:
+        test_obj.validate()
     #    #test_obj.error_handle()
 
 
