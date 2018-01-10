@@ -186,8 +186,6 @@ class vertex_reco(ds_project_base):
 
             ijob += 1
 
-            sys.exit(1)
-            
             submissionok = False
             if True: # use this bool to turn off for testing
                 psubmit = os.popen("sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh"))
