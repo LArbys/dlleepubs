@@ -49,6 +49,7 @@ class xfer_input(ds_project_base):
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
         self._filetable      = resource['FILETABLE']
+        self._ismc           = int(resource['ISMC'])
 
     ## @brief access DB and retrieves new runs and process
     def process_newruns(self):
@@ -85,7 +86,10 @@ class xfer_input(ds_project_base):
             outfile = {}
             #print "===== (",run,",",subrun,") ========="
             #print self._outfile_format
-            for f in ["supera","opreco","reco2d","mcinfo"]:
+            flist = ["supera","opreco","reco2d","mcinfo"]
+            if  self._ismc==0:
+                flist = ["supera","opreco","reco2d"]
+            for f in flist:
                 dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
                 os.system("mkdir -p %s"%(dbdir))
                 outfile[f] =  dbdir + "/" + self._outfile_format%(f,run,subrun)
@@ -144,15 +148,17 @@ class xfer_input(ds_project_base):
 
 
             # Report starting
-            self.info('validating run: run=%d, subrun=%d ...' % (run,subrun))
+            self.info('validating run: run=%d, subrun=%d ISMC=%d ...' % (run,subrun,self._ismc))
 
-            status = 1
+            status = 2
             outfile = {}
             fstatus = {}
-            for f in ["supera","opreco","reco2d","mcinfo"]:
+            flist = ["supera","opreco","reco2d","mcinfo"]
+            if self._ismc==0:
+                flist = ["supera","opreco","reco2d"]
+            for f in flist:
                 dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
                 outfile[f] =  dbdir + "/" + self._outfile_format%(f,run,subrun)
-                #print outfile[f]
                 if os.path.isfile(outfile[f]):
                     status = 3
                 else:
@@ -174,9 +180,14 @@ class xfer_input(ds_project_base):
 
             # rename the files in the ftable
             if status==3:
-                update = "update %s set (supera,opreco,reco2d,mcinfo)"%(self._filetable)
-                update += " = ('%s','%s','%s','%s')" % (outfile["supera"],outfile["opreco"],outfile["reco2d"],outfile["mcinfo"])
-                update += " where run=%d and subrun=%d; commit;" % ( run, subrun )
+                if self._ismc==1:
+                    update = "update %s set (supera,opreco,reco2d,mcinfo)"%(self._filetable)
+                    update += " = ('%s','%s','%s','%s')" % (outfile["supera"],outfile["opreco"],outfile["reco2d"],outfile["mcinfo"])
+                    update += " where run=%d and subrun=%d; commit;" % ( run, subrun )
+                else:
+                    update = "update %s set (supera,opreco,reco2d,mcinfo)"%(self._filetable)
+                    update += " = ('%s','%s','%s',NULL)" % (outfile["supera"],outfile["opreco"],outfile["reco2d"])
+                    update += " where run=%d and subrun=%d; commit;" % ( run, subrun )                    
                 #print update
                 self._api._cursor.execute( update )
                 self.info('updated input file table for (%d,%d)'%(run,subrun))
