@@ -23,6 +23,7 @@ if __name__ == '__main__':
         print
         print "......................."
         print
+        sys.exit(1)
 
     USER = str(sys.argv[1])
     squeue = exec_system(["squeue","-u",USER])

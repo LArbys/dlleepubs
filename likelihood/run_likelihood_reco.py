@@ -139,18 +139,29 @@ class ll_reco(ds_project_base):
             #
             # prepare input lists
             #
-    
-            vertexinput = os.path.join(outdbdir,"vertexout_%d.root" % jobtag)
-            pklinput    = os.path.join(outdbdir,"rst_comb_df_%d.pkl" % jobtag)
+            vertexout_input  = os.path.join(outdbdir,"vertexout_%d.root" % jobtag)
+            vertexana_input  = os.path.join(outdbdir,"vertexana_%d.root" % jobtag)
+            trackerana_input = os.path.join(outdbdir,"tracker_anaout_%d.root" % jobtag)
+            rst_pkl_input    = os.path.join(outdbdir,"rst_comb_df_%d.pkl" % jobtag)
             
             # vertexout
-            inputlist_f = open(os.path.join(inputlistdir,"vertex_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % vertexinput)
+            inputlist_f = open(os.path.join(inputlistdir,"vertex_out_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % vertexout_input)
+            inputlist_f.close()
+
+            # vertexana
+            inputlist_f = open(os.path.join(inputlistdir,"vertex_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % vertexana_input)
+            inputlist_f.close()
+
+            # tracker ana
+            inputlist_f = open(os.path.join(inputlistdir,"tracker_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % trackerana_input)
             inputlist_f.close()
 
             # pkl
-            inputlist_f = open(os.path.join(inputlistdir,"pkl_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % pklinput)
+            inputlist_f = open(os.path.join(inputlistdir,"rst_pkl_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % rst_pkl_input)
             inputlist_f.close()
 
             # runlist

@@ -404,7 +404,7 @@ class st_reco(ds_project_base):
 if __name__ == '__main__':
 
     test_obj = st_reco(sys.argv[1])
-    jobslaunched = test_obj.process_newruns()
+    #jobslaunched = test_obj.process_newruns()
     test_obj.validate()
     test_obj.error_handle()
 
