@@ -151,6 +151,9 @@ if __name__=="__main__":
     for rse in rselist:
         fdict = filedict[rse]
         print rse,fdict
+        if "supera" not in fdict or "opreco" not in fdict or "reco2d" not in fdict:
+            print rse," not complete"
+            continue
         print >> f,rse[0],'\t',rse[1],'\t',rse[2],'\t',"supera:"+fdict["supera"],'\t',"opreco:"+fdict["opreco"],'\t',"reco2d:"+fdict["reco2d"],
         if "mcinfo" in fdict:
             print >> f,'\t',"mcinfo:"+fdict["mcinfo"],
