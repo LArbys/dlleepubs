@@ -13,7 +13,7 @@ from dstream import ds_project_base
 from dstream import ds_status
 
 PUBDIR = os.environ["PUB_TOP_DIR"]
-PUBTAGGERDIR = PUBDIR+"/dllee_dstream/tagger"
+PUBTAGGERDIR = PUBDIR+"/dlleepubs/tagger"
 
 ## @class tagger
 #  @brief A dummy nu bin file xfer project
@@ -55,6 +55,7 @@ class tagger(ds_project_base):
         self._tagger_cfg     = resource['TAGGERCFG']
         self._container      = resource['CONTAINER']
         self._max_jobs       = 100
+        self._ismc           = int(resource['ISMC'])
 
     ## @brief access DB and retrieves new runs and process
     def process_newruns(self):
@@ -123,7 +124,8 @@ class tagger(ds_project_base):
             rerunlist     = open('%s/rerunlist.txt'%(workdir),'w')
             print >> larcv_input,x[2]
             print >> larlite_input,x[3]
-            print >> larlite_input,x[4]
+            if self._ismc==1:
+                print >> larlite_input,x[4]
             print >> rerunlist,jobtag
             larcv_input.close()
             larlite_input.close()
