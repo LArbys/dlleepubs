@@ -13,7 +13,7 @@ from dstream import ds_project_base
 from dstream import ds_status
 
 PUBDIR = os.environ["PUB_TOP_DIR"]
-PUBSSNETDIR = PUBDIR+"/dllee_dstream/ssnet"
+PUBSSNETDIR = PUBDIR+"/dlleepubs/ssnet"
 
 ## @class ssnet
 #  @brief A dummy nu bin file xfer project
