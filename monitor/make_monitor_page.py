@@ -1,4 +1,4 @@
-import os,sys,commands
+import os,sys,commands,datetime
 import psycopg2
 
 conn = psycopg2.connect("dbname=procdb user=taritree")
@@ -25,7 +25,11 @@ pageheader = """
 <body>
 """
 
+now = datetime.datetime.now()
 pagebody = ""
+pagebody += "generated at "+now.strftime("%Y-%m-%d %H:%M")+'\n'
+pagebody += "<hr>\n"
+
 for table in tablelist:
     pagebody += "<h2>"+table+"</h2>\n"
 
