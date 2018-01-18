@@ -17,13 +17,15 @@ for name in out:
         others.append(name[0])
 tablelist.sort()
 
-projectlist = ["xferinput","tagger","ssnet","freetaggercv","vertex"]
+projectlist = ["xferinput","tagger","ssnet","freetaggercv","vertex","trackshower"]
 #projectlist = ["xferinput","tagger","ssnet"]
 projectstatuscodes = { "xferinput":[1,2,3,None],
                        "tagger":[1,2,4,10],
                        "ssnet":[1,2,4,10],
                        "freetaggercv":[1,2,4,10],
-                       "vertex":[1,2,4,10]}
+                       "vertex":[1,2,4,10],
+                       "trackshower":[1,2,4,10],
+                       "likelihood":[1,2,4,10]}
 
 pageheader = """
 <!DOCTYPE html>
