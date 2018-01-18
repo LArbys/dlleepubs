@@ -8,16 +8,21 @@ cursor = conn.cursor()
 cursor.execute("select table_name from information_schema.tables")
 
 tablelist = []
+others = []
 out = cursor.fetchall()
 for name in out:
     if "_paths" in name[0]:
         tablelist.append( name[0].strip()[:-6] )
+    else:
+        others.append(name[0])
 tablelist.sort()
 
-projectlist = ["xferinput","tagger","ssnet"]
+projectlist = ["xferinput","tagger","ssnet","freetaggercv"]
+#projectlist = ["xferinput","tagger","ssnet"]
 projectstatuscodes = { "xferinput":[1,2,3,None],
                        "tagger":[1,2,4,10],
-                       "ssnet":[1,2,4,10] }
+                       "ssnet":[1,2,4,10],
+                       "freetaggercv":[1,2,4,10]}
 
 pageheader = """
 <!DOCTYPE html>
@@ -31,6 +36,7 @@ pagebody += "generated at "+now.strftime("%Y-%m-%d %H:%M")+'\n'
 pagebody += "<hr>\n"
 
 for table in tablelist:
+    
     pagebody += "<h2>"+table+"</h2>\n"
 
     # get total count
@@ -40,6 +46,11 @@ for table in tablelist:
     # get project info
     pagebody += "<ul>\n"
     for p in projectlist:
+
+        if "%s_%s"%(p,table) not in others:
+            #print "not found: ","%s_%s"%(p,table)
+            continue
+        
         try:
             cursor.execute("select count(*) from %s_%s where status=%d"%(p,table,projectstatuscodes[p][0]))
             tot = int( cursor.fetchone()[0] )
