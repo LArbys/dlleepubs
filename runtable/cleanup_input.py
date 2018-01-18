@@ -4,7 +4,7 @@ import psycopg2
 
 project = "bnb5e19"
 
-f = open("bnb_5e19_filelist.txt",'r')
+f = open("bnb_5e19_filelist_p01.txt",'r')
 r = f.readlines()
 
 rsedict = {}
