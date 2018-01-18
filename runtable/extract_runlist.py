@@ -72,7 +72,7 @@ def catalog_supera_files( filefolders, iopset, filedict, jobid2rse ):
             filedict[rse]["supera"] = fpath
     return
 
-def catalog_larcvtruth_files( filefolders, iopset, filedict, jobid2rse ):
+def catalog_larcvtruth_files( filefolders, iopset, filedict, jobid2rse, fname_stem="larcv_mctruth" ):
     folderlist = filefolders
     if type(filefolders) is str:
         folderlist = []
@@ -81,7 +81,7 @@ def catalog_larcvtruth_files( filefolders, iopset, filedict, jobid2rse ):
     for folder in folderlist:
         superafiles = os.listdir( folder )
         for f in superafiles:
-            if ".root" not in f or "larcv_mctruth" not in f:
+            if ".root" not in f or fname_stem not in f:
                 continue
             fpath = folder + "/" + f.strip()
     
@@ -128,20 +128,35 @@ def catalog_larlite_files( filefolders, filedict ):
 
 if __name__=="__main__":
     
-    folders = []
-    for i in sys.argv[1:]:
-        folders.append(i)
+    #folders = []
+    #for i in sys.argv[1:]:
+    #    folders.append(i)
 
-    print folders
+    print len(sys.argv),sys.argv
+    
+    if len(sys.argv)!=3 and len(sys.argv)!=4:
+        print "usage: extract_runlist [larcv folder] [larlite folder] [larcv-truth folder]"
+        sys.exit(-1)
+
+    larcv_folder = []
+    larcvtruth_folder = []
+    larlite_folder = []
+    larcv_folder.append( sys.argv[1] )
+    larlite_folder.append( sys.argv[2] )
+    if len(sys.argv)==4:
+        larcvtruth_folder.append( sys.argv[3] )
+
+
     larcviocfg="""Name: IOManager Verbosity: 02 IOMode: 0 ReadOnlyDataType: ["wire"]  ReadOnlyDataName: [0]"""
 
     iopset = larcv.PSet("IOManager",larcviocfg)
 
     filedict = {}
     jobid2rse = {}
-    catalog_supera_files( folders, iopset, filedict, jobid2rse )
-    #catalog_larcvtruth_files( folders, iopset, filedict, jobid2rse )
-    catalog_larlite_files( folders, filedict )
+    catalog_supera_files( larcv_folder, iopset, filedict, jobid2rse )
+    catalog_larlite_files( larlite_folder, filedict )
+    if len(larcvtruth_folder)>0:
+        catalog_larcvtruth_files( larcvtruth_folder, iopset, filedict, jobid2rse )
 
     rselist = filedict.keys()
     rselist.sort()
