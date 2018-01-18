@@ -59,7 +59,7 @@ class ll_reco(ds_project_base):
 
     def query_queue(self):
         """ data about slurm queue pertaining to ll_reco jobs"""
-        psqueue = commands.getoutput("squeue -u %s | grep ll_" % str(pwd.getpwuid(os.getuid()).pw_name))
+        psqueue = commands.getoutput("squeue | grep ll_")
         lsqueue = psqueue.split('\n')
 
         info = {"numjobs":0,"jobids":[]}
@@ -252,7 +252,7 @@ class ll_reco(ds_project_base):
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue -u %s | grep ll_" % str(pwd.getpwuid(os.getuid()).pw_name))
+        psinfo = os.popen( "squeue | grep ll_")
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:

@@ -41,7 +41,7 @@ class vertex_reco(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         #self._nruns = int(resource['NRUNS'])
-        self._nruns = int(10)
+        self._nruns = int(50)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir        = str(resource['STAGE1DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
@@ -57,7 +57,7 @@ class vertex_reco(ds_project_base):
 
     def query_queue(self):
         """ data about slurm queue pertaining to vertex_reco jobs"""
-        psqueue = commands.getoutput("squeue -u %s | grep vertex" % str(pwd.getpwuid(os.getuid()).pw_name))
+        psqueue = commands.getoutput("squeue | grep vertex")
         lsqueue = psqueue.split('\n')
 
         info = {"numjobs":0,"jobids":[]}
@@ -232,7 +232,7 @@ class vertex_reco(ds_project_base):
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue -u %s | grep vertex" % str(pwd.getpwuid(os.getuid()).pw_name))
+        psinfo = os.popen("squeue | grep vertex")
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -291,11 +291,8 @@ class vertex_reco(ds_project_base):
                                                          self._runtag,self._file_format,
                                                          self._input_dir,self._out_dir)
             # link
-            vertex_recoout = os.path.join(outdbdir,"vertexout_%d.root" % jobtag)
-            vertex_recoana = os.path.join(outdbdir,"vertexout_%d.root" % jobtag)
             vertex_pkl1    = os.path.join(outdbdir,"ana_comb_df_%d.pkl" % jobtag)
-            vertex_pkl2    = os.path.join(outdbdir,"ana_truth_df_%d.pkl" % jobtag)
-            vertex_pkl3    = os.path.join(outdbdir,"ana_vertex_df_%d.pkl" % jobtag)
+            self.info("verify exists=%s" % vertex_pkl1)
 
             success = os.path.exists(vertex_pkl1)
 
@@ -340,7 +337,7 @@ class vertex_reco(ds_project_base):
             # we clean out the workdir
             run     = int(x[0])
             subrun  = int(x[1])
-            workdir = os.path.join(self._grid_workdir,"vertex",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))            
+            workdir = os.path.join(self._grid_workdir,"vertex",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             os.system("rm -rf %s"%(workdir))
             # reset the status
             data = ''
@@ -356,6 +353,6 @@ class vertex_reco(ds_project_base):
 if __name__ == '__main__':
 
     test_obj = vertex_reco(sys.argv[1])
-    jobslaunched = test_obj.process_newruns()
+    #jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    test_obj.error_handle()
+    #test_obj.error_handle()

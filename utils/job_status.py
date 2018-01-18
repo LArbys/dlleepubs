@@ -30,7 +30,7 @@ if __name__ == '__main__':
     squeue = squeue[1:]
 
     names   = ["Vertex     ","TrackShower","Likelihood "]
-    stages  = ["vertex_","st_","ll_"]
+    stages  = ["vertex_","stp_","ll_"]
     running = [0,0,0]
     queued  = [0,0,0]
     
