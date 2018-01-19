@@ -7,10 +7,10 @@ from dstream import ds_status
 sys.path.insert(0,os.path.join(os.environ["PUB_TOP_DIR"],"dlleepubs"))
 from utils.downstream_utils import *
 
-class ll_reco(ds_project_base):
+class vertex_reco(ds_project_base):
 
     # Define project name as class attribute
-    _project = 'll_reco'
+    _project = 'vertex_reco'
 
     ## @brief default ctor can take # runs to process for this instance
     def __init__(self,project_name):
@@ -19,20 +19,19 @@ class ll_reco(ds_project_base):
             self._project = project_name
 
         # Call base class ctor
-        super(ll_reco,self).__init__()
+        super(vertex_reco,self).__init__()
 
         self._nruns            = None
         self._parent_project   = ""
-        self._input_dir1       = ""
-        self._input_dir2       = ""
+        self._input_dir        = ""
         self._file_format      = ""
         self._out_dir          = ""
         self._filetable        = ""
         self._grid_workdir     = ""
         self._container        = ""
+        self._vtxcfg           = ""
         self._run_script       = ""
         self._sub_script       = ""
-        self._ismc             = ""
         self._runtag           = ""
         self._max_jobs         = None
         
@@ -44,22 +43,21 @@ class ll_reco(ds_project_base):
         #self._nruns = int(resource['NRUNS'])
         self._nruns = int(50)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
-        self._input_dir1       = str(resource['STAGE1DIR'])
-        self._input_dir2       = str(resource['STAGE2DIR'])
+        self._input_dir        = str(resource['STAGE1DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
         self._out_dir          = str(resource['OUTDIR'])
         self._filetable        = str(resource['FILETABLE'])    
         self._grid_workdir     = str(resource['GRID_WORKDIR'])
         self._container        = str(resource['CONTAINER'])
+        self._vtxcfg           = os.path.join(CFG_DIR,str(resource['VTXCFG']))
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
-        self._ismc             = str(resource['ISMC'])
         self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(2000)
+        self._max_jobs         = int(50)
 
     def query_queue(self):
-        """ data about slurm queue pertaining to ll_reco jobs"""
-        psqueue = commands.getoutput("squeue | grep ll_")
+        """ data about slurm queue pertaining to vertex_reco jobs"""
+        psqueue = commands.getoutput("squeue | grep vertex")
         lsqueue = psqueue.split('\n')
 
         info = {"numjobs":0,"jobids":[]}
@@ -84,13 +82,14 @@ class ll_reco(ds_project_base):
 
         # check if we're running the max number of jobs currently
         query = "select run,subrun from %s where status=2 order by run,subrun asc" %( self._project )
+
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         nremaining = self._max_jobs - len(results)
         jobslaunched = False
         
         if nremaining<=0:
-            self.info("Already running (%d) max number of ll_reco jobs (%d)" % (len(results),self._max_jobs) )
+            self.info("Already running (%d) max number of vertex_reco jobs (%d)" % (len(results),self._max_jobs) )
             return
 
         if nremaining>self._nruns:
@@ -120,18 +119,13 @@ class ll_reco(ds_project_base):
             subrun = int(x[1])
 
             # job variables
-            jobtag,inputdbdir1,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
-                                                          self._input_dir1,self._out_dir)
-
-            jobtag,inputdbdir2,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
-                                                          self._input_dir2,self._out_dir)
+            jobtag,inputdbdir,outdbdir = cast_run_subrun(run,subrun,
+                                                         self._runtag,self._file_format,
+                                                         self._input_dir,self._out_dir)
             
-
             # prepare work dir
             self.info("Making work directory")
-            workdir      = os.path.join(self._grid_workdir,"ll",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir      = os.path.join(self._grid_workdir,"vertex",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             inputlistdir = os.path.join(workdir,"inputlists")
             cmd("mkdir -p %s"%(inputlistdir))
             self.info("...made workdir for (%d,%d) at %s"%(run,subrun,workdir))
@@ -139,29 +133,12 @@ class ll_reco(ds_project_base):
             #
             # prepare input lists
             #
-            vertexout_input  = os.path.join(outdbdir,"vertexout_%d.root" % jobtag)
-            vertexana_input  = os.path.join(outdbdir,"vertexana_%d.root" % jobtag)
-            trackerana_input = os.path.join(outdbdir,"tracker_anaout_%d.root" % jobtag)
-            rst_pkl_input    = os.path.join(outdbdir,"rst_comb_df_%d.pkl" % jobtag)
             
-            # vertexout
-            inputlist_f = open(os.path.join(inputlistdir,"vertex_out_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % vertexout_input)
-            inputlist_f.close()
+            ssnetinput  = os.path.join(inputdbdir,self._file_format%("ssnetout-larcv",run,subrun))
+            ssnetinput += ".root"
 
-            # vertexana
-            inputlist_f = open(os.path.join(inputlistdir,"vertex_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % vertexana_input)
-            inputlist_f.close()
-
-            # tracker ana
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % trackerana_input)
-            inputlist_f.close()
-
-            # pkl
-            inputlist_f = open(os.path.join(inputlistdir,"rst_pkl_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % rst_pkl_input)
+            inputlist_f = open(os.path.join(inputlistdir,"inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % ssnetinput)
             inputlist_f.close()
 
             # runlist
@@ -180,13 +157,17 @@ class ll_reco(ds_project_base):
             self.info("Making output directory @dir=%s" % str(outdbdir))
             cmd("mkdir -p %s" % (outdbdir))
 
+            # copy config over
+            cmd("scp -r %s %s" % (self._vtxcfg,workdir))
+            vtxcfg = os.path.join(workdir,os.path.basename(self._vtxcfg))
+
             # copy reco job template over
             cmd("scp -r %s %s" % (self._run_script,workdir))
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
 
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
-            run_data = run_data.replace("AAA",str(self._ismc))
+            run_data=run_data.replace("XXX",os.path.basename(vtxcfg))
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
@@ -195,7 +176,7 @@ class ll_reco(ds_project_base):
             
             sub_data = ""
             with open(sub_script,"r") as f: sub_data = f.read()
-            sub_data=sub_data.replace("AAA","ll_reco_%s" % str(jobtag))
+            sub_data=sub_data.replace("AAA","vertex_reco_%s" % str(jobtag))
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
@@ -252,7 +233,7 @@ class ll_reco(ds_project_base):
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep ll_")
+        psinfo = os.popen("squeue | grep vertex")
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -272,7 +253,7 @@ class ll_reco(ds_project_base):
         query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of ll_reco jobs in running state: %d"%(len(results)))
+        self.info("Number of vertex_reco jobs in running state: %d"%(len(results)))
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -301,18 +282,20 @@ class ll_reco(ds_project_base):
         query += " where t1.status=3 and t1.seq=0 order by run, subrun desc"
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of ll_reco jobs in finished state: %d"%(len(results)))
+        self.info("Number of vertex_reco jobs in finished state: %d"%(len(results)))
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
 
             # form output file names/workdir
-            jobtag,inputdbdir2,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
-                                                          self._input_dir1,self._out_dir)
+            jobtag,inputdbdir,outdbdir = cast_run_subrun(run,subrun,
+                                                         self._runtag,self._file_format,
+                                                         self._input_dir,self._out_dir)
             # link
-            st_pkl1 = os.path.join(outdbdir,"vertexout_filter_%d.root" % jobtag)
-            success = os.path.exists(st_pkl1)
+            vertex_pkl1    = os.path.join(outdbdir,"ana_comb_df_%d.pkl" % jobtag)
+            self.info("verify exists=%s" % vertex_pkl1)
+
+            success = os.path.exists(vertex_pkl1)
 
             if success == True:
                 self.info("status of job for (%d,%d) is good"%(run,subrun))
@@ -355,7 +338,7 @@ class ll_reco(ds_project_base):
             # we clean out the workdir
             run     = int(x[0])
             subrun  = int(x[1])
-            workdir = os.path.join(self._grid_workdir,"ll",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir = os.path.join(self._grid_workdir,"vertex",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             os.system("rm -rf %s"%(workdir))
             # reset the status
             data = ''
@@ -370,8 +353,7 @@ class ll_reco(ds_project_base):
 # A unit test section
 if __name__ == '__main__':
 
-    test_obj = ll_reco(sys.argv[1])
+    test_obj = vertex_reco(sys.argv[1])
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
     test_obj.error_handle()
-

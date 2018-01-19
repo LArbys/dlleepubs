@@ -46,7 +46,7 @@ class st_reco(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         #self._nruns = int(resource['NRUNS'])
-        self._nruns = int(10)
+        self._nruns = int(50)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -63,7 +63,7 @@ class st_reco(ds_project_base):
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._ismc             = str(resource['ISMC'])
         self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(50)
+        self._max_jobs         = int(2000)
 
     def query_queue(self):
         """ data about slurm queue pertaining to st_reco jobs"""
@@ -122,7 +122,6 @@ class st_reco(ds_project_base):
         results = self._api._cursor.fetchall()
         ijob = 0
         for x in results:
-
             # run id
             run    = int(x[0])
             subrun = int(x[1])
@@ -139,7 +138,7 @@ class st_reco(ds_project_base):
 
             # prepare work dir
             self.info("Making work directory")
-            workdir      = os.path.join(self._grid_workdir,"st",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir      = os.path.join(self._grid_workdir,"stp",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             inputlistdir = os.path.join(workdir,"inputlists")
             cmd("mkdir -p %s"%(inputlistdir))
             self.info("...made workdir for (%d,%d) at %s"%(run,subrun,workdir))
@@ -228,7 +227,7 @@ class st_reco(ds_project_base):
             
             sub_data = ""
             with open(sub_script,"r") as f: sub_data = f.read()
-            sub_data=sub_data.replace("AAA","st_reco_%s" % str(jobtag))
+            sub_data=sub_data.replace("AAA","stp_reco_%s" % str(jobtag))
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
@@ -388,7 +387,7 @@ class st_reco(ds_project_base):
             # we clean out the workdir
             run     = int(x[0])
             subrun  = int(x[1])
-            workdir = os.path.join(self._grid_workdir,"st",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir = os.path.join(self._grid_workdir,"stp",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             os.system("rm -rf %s"%(workdir))
             # reset the status
             data = ''

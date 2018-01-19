@@ -53,7 +53,7 @@ class vertex_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(50)
+        self._max_jobs         = int(2000)
 
     def query_queue(self):
         """ data about slurm queue pertaining to vertex_reco jobs"""
