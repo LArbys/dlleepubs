@@ -29,10 +29,10 @@ if __name__ == '__main__':
     squeue = exec_system(["squeue","-u",USER])
     squeue = squeue[1:]
 
-    names   = ["Vertex     ","TrackShower","Likelihood "]
-    stages  = ["vertex_","stp_","ll_"]
-    running = [0,0,0]
-    queued  = [0,0,0]
+    names   = ["Tagger     ","SSNet      ","Vertex     ","TrackShower","Likelihood "]
+    stages  = ["tagger_","ssnet_","vertex_","stp_","ll_"]
+    running = [0,0,0,0,0]
+    queued  = [0,0,0,0,0]
     
     for job in squeue:
         for ix,stage in enumerate(stages):
