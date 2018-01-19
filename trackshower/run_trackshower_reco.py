@@ -173,7 +173,7 @@ class st_reco(ds_project_base):
             if self._ismc == "1":
                 inputlist_f.write("%s %s" % (reco2dinput,mcinfoinput))
             elif self._ismc == "0":
-                inputlist_f.write("%s" % reco2dinput)
+                inputlist_f.write("%s INVALID" % reco2dinput)
             else:
                 raise Exception
 
