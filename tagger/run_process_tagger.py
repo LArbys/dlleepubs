@@ -200,7 +200,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep twongj01 | grep tagger" )
+        psinfo = os.popen( "squeue | grep %s | grep tagger"%(os.environ["USER"]) )
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
