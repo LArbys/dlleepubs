@@ -55,26 +55,26 @@ class ssnet(ds_project_base):
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._container      = resource['CONTAINER']
         self._container_alphaomega = "/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-dllee-ssnet/singularity-dllee-ssnet-nvidia375.20.img"
-        self._max_jobs       = 38
+        self._max_jobs       = 35
         self._pgpu_node_limit = 16
         self._ao_node_limit   = 3
 
     def query_queue(self):
         """ data about slurm queue pertaining to ssnet jobs"""
         # PGPU01 jobs
-        pgpu1 = commands.getoutput("squeue | grep twongj01 | grep ssnet | grep pgpu01")
+        pgpu1 = commands.getoutput("squeue | grep ssnet | grep pgpu01")
         lgpu1 = pgpu1.split('\n')
 
         # PGPU02 jobs
-        pgpu2 = commands.getoutput("squeue | grep twongj01 | grep ssnet | grep pgpu02")
+        pgpu2 = commands.getoutput("squeue | grep ssnet | grep pgpu02")
         lgpu2 = pgpu2.split('\n')
 
         # alpha025 jobs
-        palpha = commands.getoutput("squeue | grep twongj01 | grep ssnet | grep alpha025")
+        palpha = commands.getoutput("squeue | grep ssnet | grep alpha025")
         lalpha = palpha.split('\n')
 
         # omega025 jobs
-        pomega = commands.getoutput("squeue | grep twongj01 | grep ssnet | grep omega025")
+        pomega = commands.getoutput("squeue | grep ssnet | grep omega025")
         lomega = pomega.split('\n')
 
         lv = lgpu1+lgpu2+lalpha+lomega
@@ -116,7 +116,7 @@ class ssnet(ds_project_base):
 
         # get queue status
         qinfo = self.query_queue()
-        print qinfo
+        #print qinfo
 
         # do we have room on the cards?
         
@@ -186,8 +186,8 @@ class ssnet(ds_project_base):
                 submitnode="NPGPU01"
             elif qinfo["NALPHA025"]<self._ao_node_limit:
                 submitnode="NALPHA025"
-            elif qinfo["NOMEGA025"]<self._ao_node_limit:
-                submitnode="NOMEGA025"
+            #elif qinfo["NOMEGA025"]<self._ao_node_limit:
+            #    submitnode="NOMEGA025"
             elif qinfo["NPGPU02"]<self._pgpu_node_limit:
                 submitnode="NPGPU02" # not working yet
             else:
@@ -281,7 +281,7 @@ srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep twongj01 | grep ssnet" )
+        psinfo = os.popen( "squeue | grep ssnet" )
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
