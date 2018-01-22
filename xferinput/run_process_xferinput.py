@@ -156,11 +156,15 @@ class xfer_input(ds_project_base):
             flist = ["supera","opreco","reco2d","mcinfo"]
             if self._ismc==0:
                 flist = ["supera","opreco","reco2d"]
+                infile["mcinfo"] = ""
             for f in flist:
                 dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
                 outfile[f] =  dbdir + "/" + self._outfile_format%(f,run,subrun)
                 if os.path.isfile(outfile[f]):
                     status = 3
+                    # once properly copied and verified here, we remove the directory on the original file, keeping the original basename
+                    # we keep this base name so we can traceback to the original samdef entry
+                    outfile[f] = os.path.basename(infile[f])
                 else:
                     status = 2
                 fstatus[f] = status
@@ -178,19 +182,19 @@ class xfer_input(ds_project_base):
             # Log status
             self.log_status( dbstatus )
 
-            # rename the files in the ftable
+            # rename the files in the ftable to be just the original basename. we do this so we can trace back to the samweb entry.
             if status==3:
-                if self._ismc==1:
-                    update = "update %s set (supera,opreco,reco2d,mcinfo)"%(self._filetable)
-                    update += " = ('%s','%s','%s','%s')" % (outfile["supera"],outfile["opreco"],outfile["reco2d"],outfile["mcinfo"])
-                    update += " where run=%d and subrun=%d; commit;" % ( run, subrun )
-                else:
-                    update = "update %s set (supera,opreco,reco2d,mcinfo)"%(self._filetable)
-                    update += " = ('%s','%s','%s',NULL)" % (outfile["supera"],outfile["opreco"],outfile["reco2d"])
-                    update += " where run=%d and subrun=%d; commit;" % ( run, subrun )                    
-                #print update
-                self._api._cursor.execute( update )
-                self.info('updated input file table for (%d,%d)'%(run,subrun))
+               if self._ismc==1:
+                   update = "update %s set (supera,opreco,reco2d,mcinfo)"%(self._filetable)
+                   update += " = ('%s','%s','%s','%s')" % (outfile["supera"],outfile["opreco"],outfile["reco2d"],outfile["mcinfo"])
+                   update += " where run=%d and subrun=%d; commit;" % ( run, subrun )
+               else:
+                   update = "update %s set (supera,opreco,reco2d,mcinfo)"%(self._filetable)
+                   update += " = ('%s','%s','%s',NULL)" % (outfile["supera"],outfile["opreco"],outfile["reco2d"])
+                   update += " where run=%d and subrun=%d; commit;" % ( run, subrun )                    
+               #print update
+               self._api._cursor.execute( update )
+               self.info('updated input file table for (%d,%d)'%(run,subrun))
 
     ## @brief access DB and retrieves runs for which 1st process failed. Clean up.
     def error_handle(self):
