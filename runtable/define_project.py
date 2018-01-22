@@ -5,6 +5,8 @@ from pub_dbi        import pubdb_conn_info
 from pub_util       import pub_logger
 from datetime import tzinfo, timedelta, datetime
 
+PUB_DB_NAME=os.environ["PUB_PSQL_WRITER_DB"]
+
 def insert( runtable, dbconn, logger, ds, entryline ):
 
     entryline = entryline.strip()
@@ -46,8 +48,8 @@ def insert( runtable, dbconn, logger, ds, entryline ):
     values = (run,subrun,str(ismc).lower(),larcv,opreco,reco2d,mcinfo,larcvtruth,larcvsam,oprecosam,reco2dsam,mcinfosam,larcvtruthsam)
     valuestr = "(%d,%d,%s,'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"%values
 
-    os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c \"INSERT INTO %s_paths %s VALUES %s;\""
-              % (runtable,tabledef,valuestr) )
+    os.system("psql -U tufts-pubs -h nudot.lns.mit.edu %s -c \"INSERT INTO %s_paths %s VALUES %s;\""
+              % (PUB_DB_NAME,runtable,tabledef,valuestr) )
 
 
 print "PUB interfaces start"
@@ -56,9 +58,9 @@ runtable = sys.argv[1]
 flist    = sys.argv[2]
 
 os.system("~/pubs/sbin/remove_runtable %s"%(runtable))
-os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c 'DROP TABLE %s_paths;'"%(runtable))
+os.system("psql -U tufts-pubs -h nudot.lns.mit.edu %s -c 'DROP TABLE %s_paths;'"%(PUB_DB_NAME,runtable))
 
-dumptablescmd = "psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c '\dt'"
+dumptablescmd = "psql -U tufts-pubs -h nudot.lns.mit.edu %s -c '\dt'"%(PUB_DB_NAME)
 pdump = os.popen(dumptablescmd)
 ldump = pdump.readlines()
 
@@ -81,7 +83,7 @@ if not hastable:
     os.system("~/pubs/sbin/create_runtable %s"%(runtable))
     tabledef = "( run integer, subrun integer, ismc boolean, supera text, opreco text, reco2d text, mcinfo text, larcvtruth text," # current db paths
     tabledef += " superasam text, oprecosam text, reco2dsam text, mcinfosam text, larcvtruthsam text)" # samweb unique names
-    os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c 'CREATE TABLE %s_paths %s;'"%(runtable,tabledef))
+    os.system("psql -U tufts-pubs -h nudot.lns.mit.edu %s -c 'CREATE TABLE %s_paths %s;'"%(PUB_DB_NAME,runtable,tabledef))
 
 logger = pub_logger.get_logger('death_star')
 dbconn = pubdb_conn_info.admin_info()
