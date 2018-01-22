@@ -60,7 +60,7 @@ hastable = False
 
 if not hastable:
     os.system("~/pubs/sbin/create_runtable %s"%(runtable))
-    os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c 'CREATE TABLE %s_paths ( run integer, subrun integer, ismc boolean, supera text, opreco text, reco2d text, mcinfo text );'"%(runtable))
+    os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c 'CREATE TABLE %s_paths ( run integer, subrun integer, ismc boolean, supera text, opreco text, reco2d text, mcinfo text, larcvtruth text );'"%(runtable))
 
 logger = pub_logger.get_logger('death_star')
 dbconn = pubdb_conn_info.admin_info()
