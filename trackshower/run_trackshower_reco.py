@@ -63,7 +63,7 @@ class st_reco(ds_project_base):
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._ismc             = str(resource['ISMC'])
         self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(2000)
+        self._max_jobs         = int(50)
 
     def query_queue(self):
         """ data about slurm queue pertaining to st_reco jobs"""
@@ -106,7 +106,7 @@ class st_reco(ds_project_base):
 
         # get queue status
         qinfo = self.query_queue()
-        print qinfo
+        #print qinfo
         
         #
         # ...this is not the pubs way, pray it's right...
@@ -140,8 +140,9 @@ class st_reco(ds_project_base):
             self.info("Making work directory")
             workdir      = os.path.join(self._grid_workdir,"stp",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             inputlistdir = os.path.join(workdir,"inputlists")
-            cmd("mkdir -p %s"%(inputlistdir))
+            stat,out = commands.getstatusoutput("mkdir -p %s"%(inputlistdir))
             self.info("...made workdir for (%d,%d) at %s"%(run,subrun,workdir))
+            self.info("..... %d: %s"%(stat,out))
 
             #
             # prepare input lists
@@ -197,21 +198,26 @@ class st_reco(ds_project_base):
 
             # make output dir
             self.info("Making output directory @dir=%s" % str(outdbdir))
-            cmd("mkdir -p %s" % (outdbdir))
+            stat,out = commands.getstatusoutput("mkdir -p %s" % (outdbdir))
+            self.info("..... %d: %s"%(stat,out))
 
             # copy configs over
-            cmd("scp -r %s %s" % (self._trkcfg,workdir))
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._trkcfg,workdir))
             trkcfg = os.path.join(workdir,os.path.basename(self._trkcfg))
+            self.info("..... %d: %s"%(stat,out))
 
-            cmd("scp -r %s %s" % (self._trkanacfg,workdir))
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._trkanacfg,workdir))
             trkanacfg = os.path.join(workdir,os.path.basename(self._trkanacfg))
+            self.info("..... %d: %s"%(stat,out))
 
-            cmd("scp -r %s %s" % (self._shranacfg,workdir))
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._shranacfg,workdir))
             shranacfg = os.path.join(workdir,os.path.basename(self._shranacfg))
+            self.info("..... %d: %s"%(stat,out))
 
             # copy reco job template over
-            cmd("scp -r %s %s" % (self._run_script,workdir))
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._run_script,workdir))
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
+            self.info("..... %d: %s"%(stat,out))
 
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
@@ -222,8 +228,9 @@ class st_reco(ds_project_base):
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
-            cmd("scp -r %s %s" % (self._sub_script,workdir))
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._sub_script,workdir))
             sub_script = os.path.join(workdir,os.path.basename(self._sub_script))
+            self.info("..... %d: %s"%(stat,out))
             
             sub_data = ""
             with open(sub_script,"r") as f: sub_data = f.read()
@@ -330,7 +337,7 @@ class st_reco(ds_project_base):
 
         query =  "select t1.run,t1.subrun,supera"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
-        query += " where t1.status=3 and t1.seq=0 order by run, subrun desc"
+        query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit 10"
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of st_reco jobs in finished state: %d"%(len(results)))
@@ -404,6 +411,7 @@ if __name__ == '__main__':
 
     test_obj = st_reco(sys.argv[1])
     jobslaunched = test_obj.process_newruns()
-    test_obj.validate()
-    test_obj.error_handle()
+    if not jobslaunched:
+        test_obj.validate()
+        #test_obj.error_handle()
 
