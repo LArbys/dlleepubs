@@ -316,7 +316,7 @@ class ll_reco(ds_project_base):
                                                           self._input_dir1,self._out_dir)
             # link
             #st_pkl1 = os.path.join(outdbdir,"vertexout_filter_%d.root" % jobtag)
-            st_pkl1 = os.path.join(outdbdir,"vertexout_%d.root" % jobtag)
+            st_pkl1 = os.path.join(outdbdir,"vertexout_filter_nue_ana_tree_%d.root" % jobtag)
             #print st_pkl1
             success = os.path.exists(st_pkl1)
 
