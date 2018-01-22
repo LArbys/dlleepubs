@@ -54,7 +54,7 @@ class tagger(ds_project_base):
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._tagger_cfg     = resource['TAGGERCFG']
         self._container      = resource['CONTAINER']
-        self._max_jobs       = 200
+        self._max_jobs       = 300
         self._ismc           = int(resource['ISMC'])
 
     ## @brief access DB and retrieves new runs and process
