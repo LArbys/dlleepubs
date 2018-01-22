@@ -14,12 +14,26 @@ def insert( runtable, dbconn, logger, ds, entryline ):
     larcv  = data[3].split(":")[-1]
     opreco = data[4].split(":")[-1]
     reco2d = data[5].split(":")[-1]
+    larcvsam = os.path.basename(larcv)
+    oprecosam = os.path.basename(opreco)
+    reco2dsam = os.path.basename(reco2d)
+
     ismc = False
     if "mcinfo" in entryline:
         mcinfo = data[6].split(":")[-1]
+        mcinfosam = os.path.basename(mcinfo)
         ismc = True
     else:
-        mcinfo = "NULL"
+        mcinfo = ""
+        mcinfosam = ""
+
+    if "larcvtruth" in entryline:
+        larcvtruth = data[6].split(":")[-1]
+        larcvtruthsam = os.path.basename(larcvtruthsam)
+    else:
+        larcvtruth = ""
+        larcvtruthsam = ""
+
     ts     = (datetime.now()+timedelta(seconds= 0)).strftime('%Y-%m-%d %H:%M:%S')
     te     = (datetime.now()+timedelta(seconds=60)).strftime('%Y-%m-%d %H:%M:%S')
     
@@ -27,8 +41,13 @@ def insert( runtable, dbconn, logger, ds, entryline ):
     ds.insert_into_death_star( runtable, run, subrun, ts, te)
     
     # insert into filepath table
-    os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c \"INSERT INTO %s_paths (run, subrun, ismc, supera, opreco, reco2d, mcinfo) VALUES (%d,%d,%s,'%s','%s','%s','%s');\""
-              % (runtable,run,subrun,str(ismc).lower(),larcv,opreco,reco2d,mcinfo ) )
+    tabledef = "( run, subrun, ismc, supera, opreco, reco2d, mcinfo, larcvtruth," # current db paths
+    tabledef += " superasam, oprecosam, reco2dsam, mcinfosam, larcvtruthsam)" # samweb unique names
+    values = (run,subrun,str(ismc).lower(),larcv,opreco,reco2d,mcinfo,larcvtruth,larcvsam,oprecosam,reco2dsam,mcinfosam,larcvtruthsam)
+    valuestr = "(%d,%d,%s,'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"%values
+
+    os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c \"INSERT INTO %s_paths %s VALUES %s;\""
+              % (runtable,tabledef,valuestr) )
 
 
 print "PUB interfaces start"
@@ -36,8 +55,8 @@ print "PUB interfaces start"
 runtable = sys.argv[1]
 flist    = sys.argv[2]
 
-#os.system("~/pubs/sbin/remove_runtable %s"%(runtable))
-#os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c 'DROP TABLE %s_paths;'"%(runtable))
+os.system("~/pubs/sbin/remove_runtable %s"%(runtable))
+os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c 'DROP TABLE %s_paths;'"%(runtable))
 
 dumptablescmd = "psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c '\dt'"
 pdump = os.popen(dumptablescmd)
@@ -60,7 +79,9 @@ hastable = False
 
 if not hastable:
     os.system("~/pubs/sbin/create_runtable %s"%(runtable))
-    os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c 'CREATE TABLE %s_paths ( run integer, subrun integer, ismc boolean, supera text, opreco text, reco2d text, mcinfo text, larcvtruth text );'"%(runtable))
+    tabledef = "( run integer, subrun integer, ismc boolean, supera text, opreco text, reco2d text, mcinfo text, larcvtruth text," # current db paths
+    tabledef += " superasam text, oprecosam text, reco2dsam text, mcinfosam text, larcvtruthsam text)" # samweb unique names
+    os.system("psql -U tufts-pubs -h nudot.lns.mit.edu procdb -c 'CREATE TABLE %s_paths %s;'"%(runtable,tabledef))
 
 logger = pub_logger.get_logger('death_star')
 dbconn = pubdb_conn_info.admin_info()
