@@ -55,7 +55,7 @@ class ssnet(ds_project_base):
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._container      = resource['CONTAINER']
         self._container_alphaomega = "/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-dllee-ssnet/singularity-dllee-ssnet-nvidia375.20.img"
-        self._max_jobs       = 35
+        self._max_jobs       = 8+16+3+3
         self._pgpu_node_limit = 16
         self._ao_node_limit   = 3
 
@@ -178,16 +178,16 @@ class ssnet(ds_project_base):
             os.system("cp %s/pyana_mcc8_gpu.py %s/"%(PUBSSNETDIR,workdir))         # python script that runs caffe for one plane
             os.system("cp %s/pyana_mcc8_small.prototxt %s/"%(PUBSSNETDIR,workdir)) # ssnet prototxt and weights
             #os.system("cp %s/*.caffemodel %s/"%(PUBSSNETDIR,workdir))              # ssnet model weights (60 MB each/180 MB total transfer -- can i be smarter?)
-            #os.system("cp %s/*.cfg %s/"%(PUBSSNETDIR,workdir))                     # larcv configurations
+            os.system("cp %s/*.cfg %s/"%(PUBSSNETDIR,workdir))                     # larcv configurations
 
             # determine submission node on tufts
             submitnode = ""
-            if qinfo["NPGPU01"]<self._pgpu_node_limit:
-                submitnode="NPGPU01"
-            elif qinfo["NALPHA025"]<self._ao_node_limit:
+            #if qinfo["NPGPU01"]<self._pgpu_node_limit:
+            #    submitnode="NPGPU01"
+            if qinfo["NALPHA025"]<self._ao_node_limit:
                 submitnode="NALPHA025"
-            #elif qinfo["NOMEGA025"]<self._ao_node_limit:
-            #    submitnode="NOMEGA025"
+            elif qinfo["NOMEGA025"]<self._ao_node_limit:
+                submitnode="NOMEGA025"
             elif qinfo["NPGPU02"]<self._pgpu_node_limit:
                 submitnode="NPGPU02" # not working yet
             else:
