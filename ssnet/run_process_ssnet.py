@@ -177,8 +177,8 @@ class ssnet(ds_project_base):
             os.system("cp %s/run_ssnet_mcc8.py %s/"%(PUBSSNETDIR,workdir))         # runs the three planes
             os.system("cp %s/pyana_mcc8_gpu.py %s/"%(PUBSSNETDIR,workdir))         # python script that runs caffe for one plane
             os.system("cp %s/pyana_mcc8_small.prototxt %s/"%(PUBSSNETDIR,workdir)) # ssnet prototxt and weights
-            os.system("cp %s/*.caffemodel %s/"%(PUBSSNETDIR,workdir))              # ssnet model weights (60 MB each/180 MB total transfer -- can i be smarter?)
-            os.system("cp %s/*.cfg %s/"%(PUBSSNETDIR,workdir))                     # larcv configurations
+            #os.system("cp %s/*.caffemodel %s/"%(PUBSSNETDIR,workdir))              # ssnet model weights (60 MB each/180 MB total transfer -- can i be smarter?)
+            #os.system("cp %s/*.cfg %s/"%(PUBSSNETDIR,workdir))                     # larcv configurations
 
             # determine submission node on tufts
             submitnode = ""

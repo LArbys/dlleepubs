@@ -2,7 +2,7 @@
 
 
 CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/dllee_unified/singularity-dllee-unified-taggerv2alpha-20171121.img
-SCRIPT=/cluster/home/twongj01/pubs/dllee_dstream/ssnet/check_pubs_job.py
+SCRIPT=/cluster/home/twongj01/pubs/dlleepubs/ssnet/check_pubs_job.py
 
 module load singularity
 
