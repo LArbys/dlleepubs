@@ -327,7 +327,7 @@ srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
 
         query =  "select t1.run,t1.subrun,supera,opreco"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
-        query += " where t1.status=3 and t1.seq=0 order by run, subrun desc"
+        query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit 10"
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of ssnet jobs in finished state: %d"%(len(results)))
@@ -347,7 +347,7 @@ srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
             jobtag       = 10000*run + subrun
             workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)            
 
-            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s"%(PUBSSNETDIR,ssnetout,supera))
+            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBSSNETDIR,ssnetout,supera,PUBSSNETDIR))
             lcheck = pcheck.readlines()
             good = False
             try:
@@ -424,7 +424,7 @@ if __name__ == '__main__':
         test_obj = ssnet()
 
     jobslaunched = False
-    jobslaunched = test_obj.process_newruns()
+    #jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
         #test_obj.error_handle()
