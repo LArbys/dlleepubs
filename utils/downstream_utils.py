@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 PUB_TOP_DIR = os.environ["PUB_TOP_DIR"]
 DLLEE_DIR   = os.path.join(PUB_TOP_DIR,"dlleepubs")
@@ -24,7 +25,21 @@ def cast_run_subrun(run,subrun,
 
     return jobtag, inputdbdir, outputdbdir
 
-def cmd(SS):
-    print SS
+def cmd(SS,print_=True):
+    if print_==True: print SS
     os.system(SS)
     return
+
+
+#
+# subprocess execute
+#
+def exec_system(input_):
+    return subprocess.Popen(input_,stdout=subprocess.PIPE).communicate()[0].split("\n")[:-1]
+
+#
+# ssh command 
+#
+def exec_ssh(who,where,what):
+    SS = ["ssh","-oStrictHostKeyChecking=no","-oGSSAPIAuthentication=yes","-T","-x","%s@%s"%(who,where),what]
+    return exec_system(SS)

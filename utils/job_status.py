@@ -15,18 +15,20 @@ class bcolors:
 
 if __name__ == '__main__':
     
-    if len(sys.argv) != 2:
-        print
-        print "......................."
-        print
-        print "USER = str(sys.argv[1])"
-        print
-        print "......................."
-        print
-        sys.exit(1)
+    SS = []
+    USER = "noone"
 
-    USER = str(sys.argv[1])
-    squeue = exec_system(["squeue","-u",USER])
+    if len(sys.argv) != 2:
+        print "......................."
+        print "USER = str(sys.argv[1])"
+        print "......................."
+        print '... checking everyone ...'
+        SS = ["squeue"]
+    else:
+        SS = ["squeue","-u",USER]
+        USER = str(sys.argv[1])
+
+    squeue = exec_system(SS)
     squeue = squeue[1:]
 
     names   = ["Tagger     ","SSNet      ","Vertex     ","TrackShower","Likelihood "]
