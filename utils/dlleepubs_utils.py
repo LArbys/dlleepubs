@@ -175,7 +175,7 @@ if __name__ == '__main__':
     #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v3_corsika_p01", "corsika_mcc8v3_p01" )
     #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v3_corsika_p02", "corsika_mcc8v3_p02" )
 
-    test_obj.make_samweb_list( "mcc8v6_bnb5e19", "mcc8v6_bnb5e19_samweb_larcv.txt", "superasam", "likelihood", 4 )
+    test_obj.make_samweb_list( "mcc8v6_bnb5e19", "mcc8v6_bnb5e19_samweb_larcv2.txt", "superasam", "vertex", 4 )
 
     
 
