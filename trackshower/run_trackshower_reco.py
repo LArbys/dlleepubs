@@ -47,6 +47,7 @@ class st_reco(ds_project_base):
         
         #self._nruns = int(resource['NRUNS'])
         self._nruns = int(50)
+        #self._nruns = int(1)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -151,8 +152,8 @@ class st_reco(ds_project_base):
             ssnetinput  = os.path.join(inputdbdir1,self._file_format%("ssnetout-larcv",run,subrun))
             ssnetinput += ".root"
 
-            vertexinput = os.path.join(outdbdir,"vertexout_%d.root" % jobtag)
-            pklinput    = os.path.join(outdbdir,"ana_comb_df_%d.pkl" % jobtag)
+            vertexinput = os.path.join(inputdbdir2,"vertexout_%d.root" % jobtag)
+            pklinput    = os.path.join(inputdbdir2,"ana_comb_df_%d.pkl" % jobtag)
             reco2dinput = os.path.join(inputdbdir1,self._file_format%("reco2d",run,subrun))
             reco2dinput+= ".root"
             mcinfoinput = os.path.join(inputdbdir1,self._file_format%("mcinfo",run,subrun))
@@ -410,8 +411,9 @@ class st_reco(ds_project_base):
 if __name__ == '__main__':
 
     test_obj = st_reco(sys.argv[1])
+    jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        #test_obj.error_handle()
+        test_obj.error_handle()
 
