@@ -218,7 +218,7 @@ SSNET_OUTFILENAME=%s
 module load singularity
 srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
 """
-            submit = submitscript%(jobtag,workdir,run,subrun,workdir,container,ssnetout,workdir,managescript,ijob*10)
+            submit = submitscript%(jobtag,workdir,run,subrun,workdir,container,ssnetout,workdir,managescript,ijob*20)
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
@@ -427,6 +427,6 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        #test_obj.error_handle()
+        test_obj.error_handle()
 
 

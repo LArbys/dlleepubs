@@ -53,7 +53,7 @@ class vertex_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(200)
+        self._max_jobs         = int(100)
 
     def query_queue(self):
         """ data about slurm queue pertaining to vertex_reco jobs"""
@@ -353,6 +353,8 @@ class vertex_reco(ds_project_base):
 if __name__ == '__main__':
 
     test_obj = vertex_reco(sys.argv[1])
+    jobslaunched = False
     jobslaunched = test_obj.process_newruns()
-    test_obj.validate()
-    test_obj.error_handle()
+    if not jobslaunched:
+        test_obj.validate()
+        #test_obj.error_handle()
