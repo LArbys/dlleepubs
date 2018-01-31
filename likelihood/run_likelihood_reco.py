@@ -33,7 +33,9 @@ class ll_reco(ds_project_base):
         self._run_script       = ""
         self._sub_script       = ""
         self._ismc             = ""
-        self._runtag           = ""
+        self._vtx_runtag       = ""
+        self._st_runtag        = ""
+        self._out_runtag       = ""
         self._max_jobs         = None
         
     ## @brief method to retrieve the project resource information if not yet done
@@ -54,7 +56,9 @@ class ll_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._ismc             = str(resource['ISMC'])
-        self._runtag           = str(resource['RUNTAG'])
+        self._vtx_runtag       = str(resource['VTX_RUNTAG'])
+        self._st_runtag        = str(resource['ST_RUNTAG'])
+        self._out_runtag       = str(resource['OUT_RUNTAG'])
         self._max_jobs         = int(20)
 
     def query_queue(self):
@@ -119,19 +123,15 @@ class ll_reco(ds_project_base):
             run    = int(x[0])
             subrun = int(x[1])
 
-            # job variables
-            jobtag,inputdbdir1,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
-                                                          self._input_dir1,self._out_dir)
 
-            jobtag,inputdbdir2,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
-                                                          self._input_dir2,self._out_dir)
+            _     , _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"","",self._out_dir)
+            _     , _, inputdbdir2 = cast_run_subrun(run,subrun,self._st_runtag,"","",self._out_dir)
+            jobtag, _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"","",self._out_dir)
             
-
+            
             # prepare work dir
             self.info("Making work directory")
-            workdir      = os.path.join(self._grid_workdir,"ll",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir      = os.path.join(self._grid_workdir,"ll",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             inputlistdir = os.path.join(workdir,"inputlists")
             stat,out = commands.getstatusoutput("mkdir -p %s"%(inputlistdir))
             self.info("...made workdir for (%d,%d) at %s"%(run,subrun,workdir))
@@ -140,10 +140,10 @@ class ll_reco(ds_project_base):
             #
             # prepare input lists
             #
-            vertexout_input  = os.path.join(outdbdir,"vertexout_%d.root" % jobtag)
-            vertexana_input  = os.path.join(outdbdir,"vertexana_%d.root" % jobtag)
-            trackerana_input = os.path.join(outdbdir,"tracker_anaout_%d.root" % jobtag)
-            rst_pkl_input    = os.path.join(outdbdir,"rst_comb_df_%d.pkl" % jobtag)
+            vertexout_input  = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
+            vertexana_input  = os.path.join(inputdbdir1,"vertexana_%d.root" % jobtag)
+            trackerana_input = os.path.join(inputdbdir2,"tracker_anaout_%d.root" % jobtag)
+            rst_pkl_input    = os.path.join(inputdbdir2,"rst_comb_df_%d.pkl" % jobtag)
             
             # vertexout
             inputlist_f = open(os.path.join(inputlistdir,"vertex_out_inputlist_%05d.txt"% int(jobtag)),"w+")
@@ -312,7 +312,7 @@ class ll_reco(ds_project_base):
 
             # form output file names/workdir
             jobtag,inputdbdir2,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
+                                                          self._out_runtag,self._file_format,
                                                           self._input_dir1,self._out_dir)
             # link
             #st_pkl1 = os.path.join(outdbdir,"vertexout_filter_%d.root" % jobtag)
@@ -381,5 +381,5 @@ if __name__ == '__main__':
     jobslaunched = False
     if not jobslaunched:
         test_obj.validate()
-        #test_obj.error_handle()
+        test_obj.error_handle()
 
