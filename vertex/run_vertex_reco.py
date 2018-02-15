@@ -1,4 +1,4 @@
-import os, sys, pwd, commands
+import os, sys, pwd, commands,random
 from pub_dbi import DBException
 from dstream import DSException
 from dstream import ds_project_base
