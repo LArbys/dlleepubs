@@ -19,8 +19,6 @@ def cast_run_subrun(run,subrun,
     
     jobtag      = 10000*run + subrun
     inputdbdir  = os.path.join(input_dir,"%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100))
-    #ssnetinput  = os.path.join(inputdbdir,input_format%("ssnetout-larcv",run,subrun))
-    #ssnetinput += ".root"
     outputdbdir = os.path.join(output_dir,"%s/%03d/%02d/%03d/%02d/"%(runtag,rundiv100,runmod100,subrundiv100,subrunmod100))
 
     return jobtag, inputdbdir, outputdbdir

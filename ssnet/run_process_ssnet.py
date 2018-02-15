@@ -209,7 +209,7 @@ class ssnet(ds_project_base):
 #SBATCH --output=%s/log_ssnet_%d_%d.txt
 #SBATCH --ntasks=1
 #SBATCH --time=480:00
-#SBATCH --mem-per-cpu=12000
+#SBATCH --mem-per-cpu=20000
 
 WORKDIR=%s
 CONTAINER=%s
@@ -347,7 +347,7 @@ srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
             jobtag       = 10000*run + subrun
             workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)            
 
-            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBSSNETDIR,ssnetout,supera,PUBSSNETDIR))
+            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBSSNETDIR,ssnetout,supera,PUBSSNETDIR.replace("/cluster/tufts","/cluster/kappa/90-days-archive")))
             lcheck = pcheck.readlines()
             good = False
             try:

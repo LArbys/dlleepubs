@@ -7,10 +7,10 @@ from dstream import ds_status
 sys.path.insert(0,os.path.join(os.environ["PUB_TOP_DIR"],"dlleepubs"))
 from utils.downstream_utils import *
 
-class ll_reco(ds_project_base):
+class inter_reco(ds_project_base):
 
     # Define project name as class attribute
-    _project = 'll_reco'
+    _project = 'inter_reco'
 
     ## @brief default ctor can take # runs to process for this instance
     def __init__(self,project_name):
@@ -19,7 +19,7 @@ class ll_reco(ds_project_base):
             self._project = project_name
 
         # Call base class ctor
-        super(ll_reco,self).__init__()
+        super(inter_reco,self).__init__()
 
         self._nruns            = None
         self._parent_project   = ""
@@ -32,10 +32,11 @@ class ll_reco(ds_project_base):
         self._container        = ""
         self._run_script       = ""
         self._sub_script       = ""
-        self._ismc             = ""
         self._vtx_runtag       = ""
         self._st_runtag        = ""
         self._out_runtag       = ""
+        self._script           = ""
+        self._valid_prefix     = ""
         self._max_jobs         = None
         self.names = ["vgenty01",
                       "cbarne06",
@@ -49,7 +50,7 @@ class ll_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(100)
+        self._nruns = int(200)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -60,15 +61,17 @@ class ll_reco(ds_project_base):
         self._container        = str(resource['CONTAINER'])
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
-        self._ismc             = str(resource['ISMC'])
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
-        self._st_runtag        = str(resource['ST_RUNTAG'])
+        self._stp_runtag       = str(resource['STP_RUNTAG'])
+        self._ll_runtag        = str(resource['LL_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = int(100)
+        self._script           = str(resource['SCRIPT'])
+        self._valid_prefix     = str(resource['VALID_PREFIX'])
+        self._max_jobs         = int(200)
 
     def query_queue(self):
-        """ data about slurm queue pertaining to ll_reco jobs"""
-        psqueue = commands.getoutput("squeue | grep ll_")
+        """ data about slurm queue pertaining to inter_reco jobs"""
+        psqueue = commands.getoutput("squeue | grep inter_")
         lsqueue = psqueue.split('\n')
 
         info = {"numjobs":0,"jobids":[]}
@@ -99,7 +102,7 @@ class ll_reco(ds_project_base):
         jobslaunched = False
         
         if nremaining<=0:
-            self.info("Already running (%d) max number of ll_reco jobs (%d)" % (len(results),self._max_jobs) )
+            self.info("Already running (%d) max number of inter_reco jobs (%d)" % (len(results),self._max_jobs) )
             return
 
         if nremaining>self._nruns:
@@ -126,16 +129,16 @@ class ll_reco(ds_project_base):
             # run id
             run    = int(x[0])
             subrun = int(x[1])
-
-
-            _     , _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"","",self._out_dir)
-            _     , _, inputdbdir2 = cast_run_subrun(run,subrun,self._st_runtag,"","",self._out_dir)
-            jobtag, _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"","",self._out_dir)
+            _     , inputdbdir0,           _ = cast_run_subrun(run,subrun,              "","", self._input_dir1,""           )
+            _     ,           _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"",               "",self._out_dir)
+            _     ,           _, inputdbdir2 = cast_run_subrun(run,subrun,self._stp_runtag,"",               "",self._out_dir)
+            _     ,           _, inputdbdir3 = cast_run_subrun(run,subrun,self._ll_runtag ,"",               "",self._out_dir)
+            jobtag,           _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"",               "",self._out_dir)
             
             
             # prepare work dir
             self.info("Making work directory")
-            workdir      = os.path.join(self._grid_workdir,"ll",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir      = os.path.join(self._grid_workdir,"inter",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             inputlistdir = os.path.join(workdir,"inputlists")
             stat,out = commands.getstatusoutput("mkdir -p %s"%(inputlistdir))
             self.info("...made workdir for (%d,%d) at %s"%(run,subrun,workdir))
@@ -144,30 +147,50 @@ class ll_reco(ds_project_base):
             #
             # prepare input lists
             #
-            vertexout_input  = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
-            vertexana_input  = os.path.join(inputdbdir1,"vertexana_%d.root" % jobtag)
-            trackerana_input = os.path.join(inputdbdir2,"tracker_anaout_%d.root" % jobtag)
-            rst_pkl_input    = os.path.join(inputdbdir2,"rst_comb_df_%d.pkl" % jobtag)
+            ssnet_input     = os.path.join(inputdbdir0,self._file_format%("ssnetout-larcv",run,subrun))
+            ssnet_input    += ".root"
+
+            opreco_input    = os.path.join(inputdbdir0,self._file_format%("opreco",run,subrun))
+            opreco_input   += ".root"
+
+            vertexout_input = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
+            shower_input    = os.path.join(inputdbdir2,"shower_reco_out_%d.root" % jobtag)
+            tracker_input   = os.path.join(inputdbdir2,"tracker_reco_%d.root" % jobtag)
+            inter_input     = os.path.join(inputdbdir2,"intermediate_file_%d.root" % jobtag)
             
-            # vertexout
-            inputlist_f = open(os.path.join(inputlistdir,"vertex_out_inputlist_%05d.txt"% int(jobtag)),"w+")
+            # ssnet
+            inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % ssnet_input)
+            inputlist_f.close()
+
+            # opreco
+            inputlist_f = open(os.path.join(inputlistdir,"opreco_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % opreco_input)
+            inputlist_f.close()
+            
+            # vertex
+            inputlist_f = open(os.path.join(inputlistdir,"vertex_inputlist_%05d.txt"% int(jobtag)),"w+")
             inputlist_f.write("%s" % vertexout_input)
             inputlist_f.close()
 
-            # vertexana
-            inputlist_f = open(os.path.join(inputlistdir,"vertex_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % vertexana_input)
+            # shower
+            inputlist_f = open(os.path.join(inputlistdir,"shower_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % shower_input)
             inputlist_f.close()
 
-            # tracker ana
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % trackerana_input)
+            # tracker
+            inputlist_f = open(os.path.join(inputlistdir,"tracker_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % tracker_input)
             inputlist_f.close()
 
-            # pkl
-            inputlist_f = open(os.path.join(inputlistdir,"rst_pkl_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % rst_pkl_input)
+            # inter
+            inputlist_f = open(os.path.join(inputlistdir,"inter_inputlist_%05d.txt"% int(jobtag)),"w+")
+            if os.path.exists(inter_input) == True:
+                inputlist_f.write("%s" % inter_input)
+            else:
+                inputlist_f.write("\"\"")
             inputlist_f.close()
+
 
             # runlist
             self.info("Filling runlist with jobtag=%s" % str(jobtag))
@@ -193,7 +216,7 @@ class ll_reco(ds_project_base):
 
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
-            run_data = run_data.replace("AAA",str(self._ismc))
+            run_data = run_data.replace("AAA",self._script)
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
@@ -203,7 +226,7 @@ class ll_reco(ds_project_base):
             
             sub_data = ""
             with open(sub_script,"r") as f: sub_data = f.read()
-            sub_data=sub_data.replace("AAA","ll_reco_%s" % str(jobtag))
+            sub_data=sub_data.replace("AAA","inter_reco_%s" % str(jobtag))
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
@@ -215,6 +238,7 @@ class ll_reco(ds_project_base):
             ijob += 1
 
             submissionok = False
+
             if True: # use this bool to turn off for testing
 
                 interactive = False
@@ -283,7 +307,7 @@ class ll_reco(ds_project_base):
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep ll_")
+        psinfo = os.popen( "squeue | grep inter_")
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -303,7 +327,7 @@ class ll_reco(ds_project_base):
         query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of ll_reco jobs in running state: %d"%(len(results)))
+        self.info("Number of inter_reco jobs in running state: %d"%(len(results)))
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -333,7 +357,7 @@ class ll_reco(ds_project_base):
 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of ll_reco jobs in finished state: %d"%(len(results)))
+        self.info("Number of inter_reco jobs in finished state: %d"%(len(results)))
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -343,10 +367,8 @@ class ll_reco(ds_project_base):
                                                           self._out_runtag,self._file_format,
                                                           self._input_dir1,self._out_dir)
             # link
-            #st_pkl1 = os.path.join(outdbdir,"vertexout_filter_%d.root" % jobtag)
-            st_pkl1 = os.path.join(outdbdir,"vertexout_filter_nue_ana_tree_%d.root" % jobtag)
-            #print st_pkl1
-            success = os.path.exists(st_pkl1)
+            ana = os.path.join(outdbdir,"%s_%d.root" % (self._valid_prefix,jobtag))
+            success = os.path.exists(ana)
 
             if success == True:
                 self.info("status of job for (%d,%d) is good"%(run,subrun))
@@ -389,7 +411,7 @@ class ll_reco(ds_project_base):
             # we clean out the workdir
             run     = int(x[0])
             subrun  = int(x[1])
-            workdir = os.path.join(self._grid_workdir,"ll",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir = os.path.join(self._grid_workdir,"inter",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             os.system("rm -rf %s"%(workdir))
             # reset the status
             data = ''
@@ -404,10 +426,9 @@ class ll_reco(ds_project_base):
 # A unit test section
 if __name__ == '__main__':
 
-    test_obj = ll_reco(sys.argv[1])
+    test_obj = inter_reco(sys.argv[1])
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
-    #if not jobslaunched:
     test_obj.validate()
     test_obj.error_handle()
 

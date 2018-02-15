@@ -1,4 +1,4 @@
-import os, sys, pwd, commands
+import os, sys, pwd, commands, time, random
 from pub_dbi import DBException
 from dstream import DSException
 from dstream import ds_project_base
@@ -38,7 +38,16 @@ class st_reco(ds_project_base):
         self._sub_script       = ""
         self._ismc             = ""
         self._runtag           = ""
+        self._in_runtag        = ""
+        self._out_runtag       = ""
         self._max_jobs         = None
+        self.names = ["vgenty01",
+                      "cbarne06",
+                      "jmoon02",
+                      "ran01",
+                      "lyates01",
+                      "ahourl01"]
+
         
     ## @brief method to retrieve the project resource information if not yet done
     def get_resource(self):
@@ -46,8 +55,7 @@ class st_reco(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         #self._nruns = int(resource['NRUNS'])
-        self._nruns = int(50)
-        #self._nruns = int(1)
+        self._nruns = int(100)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -63,8 +71,10 @@ class st_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._ismc             = str(resource['ISMC'])
-        self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(50)
+        self._in_runtag        = str(resource['IN_RUNTAG'])
+        self._out_runtag       = str(resource['OUT_RUNTAG'])
+        self._max_jobs         = int(300)
+
 
     def query_queue(self):
         """ data about slurm queue pertaining to st_reco jobs"""
@@ -117,7 +127,7 @@ class st_reco(ds_project_base):
         query =  "select t1.run,t1.subrun"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project, self._filetable)
         query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
-        query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
+        query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining)
 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
@@ -128,18 +138,14 @@ class st_reco(ds_project_base):
             subrun = int(x[1])
 
             # job variables
-            jobtag,inputdbdir1,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
-                                                          self._input_dir1,self._out_dir)
-
-            jobtag,inputdbdir2,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
-                                                          self._input_dir2,self._out_dir)
+            _     , inputdbdir1,           _ = cast_run_subrun(run,subrun,"","",self._input_dir1,"")
+            _     ,           _, inputdbdir2 = cast_run_subrun(run,subrun,self._in_runtag,"","",self._out_dir)
+            jobtag,           _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"","",self._out_dir)
             
-
+            
             # prepare work dir
             self.info("Making work directory")
-            workdir      = os.path.join(self._grid_workdir,"stp",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir      = os.path.join(self._grid_workdir,"stp",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             inputlistdir = os.path.join(workdir,"inputlists")
             stat,out = commands.getstatusoutput("mkdir -p %s"%(inputlistdir))
             self.info("...made workdir for (%d,%d) at %s"%(run,subrun,workdir))
@@ -226,6 +232,7 @@ class st_reco(ds_project_base):
             run_data = run_data.replace("ZZZ",os.path.basename(trkanacfg))
             run_data = run_data.replace("RRR",os.path.basename(shranacfg))
             run_data = run_data.replace("AAA",str(self._recluster))
+            run_data = run_data.replace("BBB",str(self._ismc))
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
@@ -248,14 +255,37 @@ class st_reco(ds_project_base):
 
             submissionok = False
             if True: # use this bool to turn off for testing
-                psubmit = os.popen("sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh"))
-                lsubmit = psubmit.readlines()
-                submissionid = ""
-                for l in lsubmit:
-                    l = l.strip()
-                    if "Submitted batch job" in l:
-                        submissionid = l.split()[-1].strip()
-                        submissionok = True
+
+                interactive = False
+
+                if interactive == True:
+                    SS = "%s &" % os.path.join(workdir,"submit_pubs_job_interactive.sh")
+                    psubmit = os.popen(SS)
+                    print "Sleeping..."
+                    time.sleep(5)
+                    print "...slept"
+                    lsubmit = None
+                    with open(os.path.join(workdir,"job.id"),'r') as f:
+                        lsubmit = f.read()
+
+                    lsubmit = lsubmit.strip()
+                    submissionid = lsubmit.split("=")[-1]
+                    submissionok = True
+                else:
+                    SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
+                    SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
+                    name = random.choice(self.names)
+                    SSH_PREFIX = SSH_PREFIX % (name,SS)
+                    print "Submitted as name=%s" % name
+                    psubmit = os.popen(SSH_PREFIX)
+                    lsubmit = psubmit.readlines()
+                    submissionid = ""
+                    for l in lsubmit:
+                        l = l.strip()
+                        if "Submitted batch job" in l:
+                            submissionid = l.split()[-1].strip()
+                            submissionok = True
+                        
 
             # Create a status object to be logged to DB (if necessary)
             if submissionok:
@@ -281,7 +311,7 @@ class st_reco(ds_project_base):
 
     ## @brief access DB and retrieves processed run for validation
     def validate(self):
-
+        print "Validate"
         # Attempt to connect DB. If failure, abort
         if not self.connect():
 	    self.error('Cannot connect to DB! Aborting...')
@@ -338,7 +368,7 @@ class st_reco(ds_project_base):
 
         query =  "select t1.run,t1.subrun,supera"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
-        query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit 10"
+        query += " where t1.status=3 and t1.seq=0 order by run, subrun desc"
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of st_reco jobs in finished state: %d"%(len(results)))
@@ -347,9 +377,9 @@ class st_reco(ds_project_base):
             subrun = int(x[1])
 
             # form output file names/workdir
-            jobtag,inputdbdir2,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
-                                                          self._input_dir1,self._out_dir)
+            jobtag,_,outdbdir = cast_run_subrun(run,subrun,
+                                                self._out_runtag,self._file_format,
+                                                self._input_dir1,self._out_dir)
             # link
             st_pkl1 = os.path.join(outdbdir,"rst_comb_df_%d.pkl" % jobtag)
             success = os.path.exists(st_pkl1)
@@ -375,7 +405,7 @@ class st_reco(ds_project_base):
 
     ## @brief access DB and retrieves runs for which 1st process failed. Clean up.
     def error_handle(self):
-
+        print "Error Handle"
         # Attempt to connect DB. If failure, abort
         if not self.connect():
 	    self.error('Cannot connect to DB! Aborting...')
@@ -395,7 +425,7 @@ class st_reco(ds_project_base):
             # we clean out the workdir
             run     = int(x[0])
             subrun  = int(x[1])
-            workdir = os.path.join(self._grid_workdir,"stp",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir = os.path.join(self._grid_workdir,"stp",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             os.system("rm -rf %s"%(workdir))
             # reset the status
             data = ''
@@ -413,7 +443,7 @@ if __name__ == '__main__':
     test_obj = st_reco(sys.argv[1])
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
-    if not jobslaunched:
-        test_obj.validate()
-        test_obj.error_handle()
+    # if not jobslaunched:
+    test_obj.validate()
+    test_obj.error_handle()
         

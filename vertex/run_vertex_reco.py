@@ -34,6 +34,13 @@ class vertex_reco(ds_project_base):
         self._sub_script       = ""
         self._runtag           = ""
         self._max_jobs         = None
+        self.names = ["vgenty01",
+                      "cbarne06",
+                      "jmoon02",
+                      "ran01",
+                      "lyates01",
+                      "ahourl01"]
+
         
     ## @brief method to retrieve the project resource information if not yet done
     def get_resource(self):
@@ -185,17 +192,38 @@ class vertex_reco(ds_project_base):
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
-
             submissionok = False
             if True: # use this bool to turn off for testing
-                psubmit = os.popen("sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh"))
-                lsubmit = psubmit.readlines()
-                submissionid = ""
-                for l in lsubmit:
-                    l = l.strip()
-                    if "Submitted batch job" in l:
-                        submissionid = l.split()[-1].strip()
-                        submissionok = True
+
+                interactive = False
+
+                if interactive == True:
+                    SS = "%s &" % os.path.join(workdir,"submit_pubs_job_interactive.sh")
+                    psubmit = os.popen(SS)
+                    print "Sleeping..."
+                    time.sleep(5)
+                    print "...slept"
+                    lsubmit = None
+                    with open(os.path.join(workdir,"job.id"),'r') as f:
+                        lsubmit = f.read()
+
+                    lsubmit = lsubmit.strip()
+                    submissionid = lsubmit.split("=")[-1]
+                    submissionok = True
+                else:
+                    SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
+                    SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
+                    name = random.choice(self.names)
+                    SSH_PREFIX = SSH_PREFIX % (name,SS)
+                    print "Submitted as name=%s" % name
+                    psubmit = os.popen(SSH_PREFIX)
+                    lsubmit = psubmit.readlines()
+                    submissionid = ""
+                    for l in lsubmit:
+                        l = l.strip()
+                        if "Submitted batch job" in l:
+                            submissionid = l.split()[-1].strip()
+                            submissionok = True
 
             # Create a status object to be logged to DB (if necessary)
             if submissionok:
@@ -355,6 +383,5 @@ if __name__ == '__main__':
     test_obj = vertex_reco(sys.argv[1])
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
-    if not jobslaunched:
-        test_obj.validate()
-        #test_obj.error_handle()
+    test_obj.validate()
+    test_obj.error_handle()

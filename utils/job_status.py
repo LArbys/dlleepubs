@@ -25,16 +25,17 @@ if __name__ == '__main__':
         print '... checking everyone ...'
         SS = ["squeue"]
     else:
-        SS = ["squeue","-u",USER]
         USER = str(sys.argv[1])
+        SS = ["squeue","-u",USER]
+
 
     squeue = exec_system(SS)
     squeue = squeue[1:]
 
-    names   = ["Tagger     ","SSNet      ","Vertex     ","TrackShower","Likelihood "]
-    stages  = ["tagger_","ssnet_","vertex_","stp_","ll_"]
-    running = [0,0,0,0,0]
-    queued  = [0,0,0,0,0]
+    names   = ["Tagger     ","SSNet      ","Vertex     ","TrackShower","Likelihood ","InterTool  " ]
+    stages  = ["tagger_","ssnet_","vertex_","stp_","ll_","inter_"]
+    running = [0,0,0,0,0,0]
+    queued  = [0,0,0,0,0,0]
     
     for job in squeue:
         for ix,stage in enumerate(stages):

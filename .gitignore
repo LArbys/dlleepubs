@@ -3,3 +3,17 @@
 *.pyc
 Production_Config
 vertex-tuftscluster-scripts
+*.log
+*.err
+*.caffemodel
+\#*\#
+test1
+test2
+a
+b
+c
+d
+e
+f
+g
+absorbdata
