@@ -25,6 +25,7 @@ source /usr/local/bin/thisroot.sh
 
 # larbys stack
 source /etc/larbys.sh
+export LD_LIBRARY_PATH=/usr/local/nvidia:${LD_LIBRARY_PATH}
 cd /usr/local/larbys/ssnet_example/sw
 source setup.sh
 
