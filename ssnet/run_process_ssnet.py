@@ -216,6 +216,8 @@ CONTAINER=%s
 SSNET_OUTFILENAME=%s
 
 module load singularity
+export PATH=/usr/local/nvidia:${PATH}
+export LD_LIBRARY_PATH=/usr/local/nvidia:${LD_LIBRARY_PATH}
 srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
 """
             submit = submitscript%(jobtag,workdir,run,subrun,workdir,container,ssnetout,workdir,managescript,ijob*20)
