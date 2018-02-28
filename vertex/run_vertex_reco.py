@@ -48,7 +48,7 @@ class vertex_reco(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         #self._nruns = int(resource['NRUNS'])
-        self._nruns = int(50)
+        self._nruns = int(100)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir        = str(resource['STAGE1DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
@@ -60,7 +60,7 @@ class vertex_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(100)
+        self._max_jobs         = int(200)
 
     def query_queue(self):
         """ data about slurm queue pertaining to vertex_reco jobs"""
