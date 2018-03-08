@@ -55,8 +55,10 @@ class ssnet(ds_project_base):
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._container      = resource['CONTAINER']
         self._container_alphaomega = "/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-dllee-ssnet/singularity-dllee-ssnet-nvidia375.20.img"
-        self._max_jobs       = 16+16+3+3
+        self._max_jobs       = 16+16+3+3+3
         self._pgpu_node_limit = 16
+        #self._pgpu03_node_limit = 7*5
+        self._pgpu03_node_limit = 3 # start with small test, if works, remove and uncomment above, then change last 3 in _max_jobs to 35
         self._ao_node_limit   = 3
 
     def query_queue(self):
@@ -69,6 +71,10 @@ class ssnet(ds_project_base):
         pgpu2 = commands.getoutput("squeue | grep ssnet | grep pgpu02")
         lgpu2 = pgpu2.split('\n')
 
+        # PGPU03 jobs
+        pgpu3 = commands.getoutput("squeue | grep ssnet | grep pgpu03")
+        lgpu3 = pgpu2.split('\n')
+
         # alpha025 jobs
         palpha = commands.getoutput("squeue | grep ssnet | grep alpha025")
         lalpha = palpha.split('\n')
@@ -77,9 +83,9 @@ class ssnet(ds_project_base):
         pomega = commands.getoutput("squeue | grep ssnet | grep omega025")
         lomega = pomega.split('\n')
 
-        lv = lgpu1+lgpu2+lalpha+lomega
+        lv = lgpu1+lgpu2+lgpu3+lalpha+lomega
 
-        info = {"NPGPU01":len(lgpu1),"NPGPU02":len(lgpu2),"NALPHA025":len(lalpha),"NOMEGA025":len(lomega),"jobids":[]}
+        info = {"NPGPU01":len(lgpu1),"NPGPU02":len(lgpu2),"NPGPU03":len(lgpu3),"NALPHA025":len(lalpha),"NOMEGA025":len(lomega),"jobids":[]}
         for l in lv:
             if l.strip()!="":
                 jobid = int(l.split()[0])
@@ -189,7 +195,9 @@ class ssnet(ds_project_base):
             elif qinfo["NOMEGA025"]<self._ao_node_limit:
                 submitnode="NOMEGA025"
             elif qinfo["NPGPU02"]<self._pgpu_node_limit:
-                submitnode="NPGPU02" # not working yet
+                submitnode="NPGPU02" 
+            elif qinfo["NPGPU03"]<self._pgpu3_node_limit:
+                submitnode="NPGPU03" 
             else:
                 submitnode=""
 
@@ -198,6 +206,7 @@ class ssnet(ds_project_base):
 
             managescript = "manage_tufts_gpu_jobs.py"
             container = self._container
+            # alpha,omega require different scripts
             if submitnode in ["NOMEGA025","NALPHA025"]:
                 managescript = "manage_tufts_gpu_jobs_alphaomega.py"
                 container = self._container_alphaomega
@@ -236,6 +245,8 @@ srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
                 psubmit = os.popen("sbatch -p gpu --exclude=omega025,pgpu01,pgpu02 %s/submit.sh"%(workdir))
             elif submitnode=="NOMEGA025":
                 psubmit = os.popen("sbatch -p gpu --exclude=alpha025,pgpu01,pgpu02 %s/submit.sh"%(workdir))
+            elif submitnode=="NPGPU03":
+                psubmit = os.popen("sbatch -p gpu --nodelist=pgpu03 %s/submit.sh"%(workdir))
             else:
                 psubmit = ['']
 
