@@ -210,7 +210,7 @@ class inter_reco(ds_project_base):
             self.info("..... %d %s"%(stat,out))
 
             # copy reco job template over
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._run_script,workdir))
+            stat,out = commands.getstatusoutput("scp %s %s" % (self._run_script,workdir))
             self.info("..... %d %s"%(stat,out))
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
 
@@ -220,7 +220,7 @@ class inter_reco(ds_project_base):
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._sub_script,workdir))
+            stat,out = commands.getstatusoutput("scp %s %s" % (self._sub_script,workdir))
             self.info("..... %d %s"%(stat,out))
             sub_script = os.path.join(workdir,os.path.basename(self._sub_script))
             
@@ -402,6 +402,7 @@ class inter_reco(ds_project_base):
             self.get_resource()
 
         # check running jobs
+        self.info("got nruns=%s" % self._nruns)
         query = "select run,subrun from %s where status=10 order by run,subrun asc limit %d" %( self._project, self._nruns*10 )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
@@ -412,6 +413,7 @@ class inter_reco(ds_project_base):
             run     = int(x[0])
             subrun  = int(x[1])
             workdir = os.path.join(self._grid_workdir,"inter",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            self.info("deleting... %s" % workdir)
             os.system("rm -rf %s"%(workdir))
             # reset the status
             data = ''
@@ -430,5 +432,6 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
+    print "...Error handle..."
     test_obj.error_handle()
 

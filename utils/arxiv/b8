@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#
+# dllee
+#
+python dlhadd.py mcc8v4_cocktail_p00 test8 dllee 1>cocktail_p00_test8_dllee.log 2>cocktail_p00_test8_dllee.err
+python dlhadd.py mcc8v4_cocktail_p01 test8 dllee 1> cocktail_p01_test8_dllee.log 2> cocktail_p01_test8_dllee.err
+python dlhadd.py mcc8v4_cocktail_p02 test8 dllee 1> cocktail_p02_test8_dllee.log 2> cocktail_p02_test8_dllee.err
+python dlhadd.py mcc8v4_cocktail_p03 test8 dllee 1> cocktail_p03_test8_dllee.log 2> cocktail_p03_test8_dllee.err
+python dlhadd.py mcc8v4_cocktail_p04 test8 dllee 1> cocktail_p04_test8_dllee.log 2> cocktail_p04_test8_dllee.err
+
+python dlhadd.py corsika_mcc8v3_p00 test8 dllee 1> corsika_p00_test8_dllee.log 2> corsika_p00_test8_dllee.err
+python dlhadd.py corsika_mcc8v3_p01 test8 dllee 1> corsika_p01_test8_dllee.log 2> corsika_p01_test8_dllee.err
+python dlhadd.py corsika_mcc8v3_p02 test8 dllee 1> corsika_p02_test8_dllee.log 2> corsika_p02_test8_dllee.err
+
+python dlhadd.py mcc8v6_bnb5e19 test8 dllee 1> bnb5e19_test8_dllee.log 2> bnb5e19_test8_dllee.err
+python dlhadd.py mcc8v6_extbnb test8 dllee 1> extbnb_test8_dllee.log 2> extbnb_test8_dllee.err
+
+#
+# Final
+#
+python dlhadd.py mcc8v4_cocktail_p00 test8 Final 1>cocktail_p00_test8_Final.log 2>cocktail_p00_test8_Final.err
+python dlhadd.py mcc8v4_cocktail_p01 test8 Final 1> cocktail_p01_test8_Final.log 2> cocktail_p01_test8_Final.err
+python dlhadd.py mcc8v4_cocktail_p02 test8 Final 1> cocktail_p02_test8_Final.log 2> cocktail_p02_test8_Final.err
+python dlhadd.py mcc8v4_cocktail_p03 test8 Final 1> cocktail_p03_test8_Final.log 2> cocktail_p03_test8_Final.err
+python dlhadd.py mcc8v4_cocktail_p04 test8 Final 1> cocktail_p04_test8_Final.log 2> cocktail_p04_test8_Final.err
+
+python dlhadd.py corsika_mcc8v3_p00 test8 Final 1> corsika_p00_test8_Final.log 2> corsika_p00_test8_Final.err
+python dlhadd.py corsika_mcc8v3_p01 test8 Final 1> corsika_p01_test8_Final.log 2> corsika_p01_test8_Final.err
+python dlhadd.py corsika_mcc8v3_p02 test8 Final 1> corsika_p02_test8_Final.log 2> corsika_p02_test8_Final.err
+
+python dlhadd.py mcc8v6_bnb5e19 test8 Final 1> bnb5e19_test8_Final.log 2> bnb5e19_test8_Final.err
+python dlhadd.py mcc8v6_extbnb test8 Final 1> extbnb_test8_Final.log 2> extbnb_test8_Final.err
+
+#
+# inter
+#
+python dlhadd.py mcc8v4_cocktail_p00 test8 inter 1>cocktail_p00_test8_inter.log 2>cocktail_p00_test8_inter.err
+python dlhadd.py mcc8v4_cocktail_p01 test8 inter 1> cocktail_p01_test8_inter.log 2> cocktail_p01_test8_inter.err
+python dlhadd.py mcc8v4_cocktail_p02 test8 inter 1> cocktail_p02_test8_inter.log 2> cocktail_p02_test8_inter.err
+python dlhadd.py mcc8v4_cocktail_p03 test8 inter 1> cocktail_p03_test8_inter.log 2> cocktail_p03_test8_inter.err
+python dlhadd.py mcc8v4_cocktail_p04 test8 inter 1> cocktail_p04_test8_inter.log 2> cocktail_p04_test8_inter.err
+
+python dlhadd.py corsika_mcc8v3_p00 test8 inter 1> corsika_p00_test8_inter.log 2> corsika_p00_test8_inter.err
+python dlhadd.py corsika_mcc8v3_p01 test8 inter 1> corsika_p01_test8_inter.log 2> corsika_p01_test8_inter.err
+python dlhadd.py corsika_mcc8v3_p02 test8 inter 1> corsika_p02_test8_inter.log 2> corsika_p02_test8_inter.err
+
+python dlhadd.py mcc8v6_bnb5e19 test8 inter 1> bnb5e19_test8_inter.log 2> bnb5e19_test8_inter.err
+python dlhadd.py mcc8v6_extbnb test8 inter 1> extbnb_test8_inter.log 2> extbnb_test8_inter.err
+
+
+

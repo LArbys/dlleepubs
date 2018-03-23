@@ -84,23 +84,31 @@ if __name__ == '__main__':
 
     import sys
 
-    runtable = sys.argv[1]
-    filetype = sys.argv[2]
-    outfile  = sys.argv[3]
-    status = 4
+    # run table: the stem name for a whole chain of projects. 
+    #            ex. mcc8v6_bnb5e19, a project would be ssnet_mcc8v6_bnb5e19
+    # status: status of files for a given stage to check
+    # endpath: stage to check status of files
+    # filetypes: list of file types to return, e.g. supera, opreco, reco2d (stage1 only at the moment)
 
-    
+    runtable  = sys.argv[1]
+    status    = int(sys.argv[2])
+    endpath   = sys.argv[3]
+    filetypes = sys.argv[4:]
+
     test_obj = dlleepubsutils("X")
-    rundict = test_obj.fetch_completed_entries( runtable, endpath="ssnet", endstatus=status )
+    rundict = test_obj.fetch_completed_entries( runtable, endpath=endpath, endstatus=status )
 
     rslist = rundict.keys()
     rslist.sort()
 
-    out = open(outfile,'w')
+    #out = open(outfile,'w')
     
     for rs in rslist:
-        print >>out,"%d %d %s"%(rs[0],rs[1], rundict[rs][filetype])
+        print "%d %d"%(rs[0],rs[1]),
+        for filetype in filetypes:
+            print rundict[rs][filetype],
+        print
     
-    out.close()
+    #out.close()
 
 

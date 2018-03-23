@@ -48,7 +48,7 @@ class vertex_reco(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         #self._nruns = int(resource['NRUNS'])
-        self._nruns = int(100)
+        self._nruns = int(10)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir        = str(resource['STAGE1DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
@@ -60,7 +60,7 @@ class vertex_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(200)
+        self._max_jobs         = int(300)
 
     def query_queue(self):
         """ data about slurm queue pertaining to vertex_reco jobs"""
@@ -164,10 +164,12 @@ class vertex_reco(ds_project_base):
             cmd("mkdir -p %s" % (outdbdir))
 
             # copy config over
+            self.info("copy config")
             cmd("scp -r %s %s" % (self._vtxcfg,workdir))
             vtxcfg = os.path.join(workdir,os.path.basename(self._vtxcfg))
 
             # copy reco job template over
+            self.info("copy template")
             cmd("scp -r %s %s" % (self._run_script,workdir))
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
 
@@ -177,6 +179,7 @@ class vertex_reco(ds_project_base):
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
+            self.info("copy submission")
             cmd("scp -r %s %s" % (self._sub_script,workdir))
             sub_script = os.path.join(workdir,os.path.basename(self._sub_script))
             

@@ -17,3 +17,7 @@ e
 f
 g
 absorbdata
+*.root
+*.dat
+*.log
+*.err
