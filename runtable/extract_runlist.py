@@ -164,9 +164,9 @@ if __name__=="__main__":
     rselist = filedict.keys()
     rselist.sort()
 
-    f = open('filelist_extunb_p00.txt','w')
+    f = open('filelist.txt','w')
 
-    g = open('incomplete_extunb_p00.txt','w')
+    g = open('incomplete.txt','w')
 
     for rse in rselist:
         fdict = filedict[rse]
