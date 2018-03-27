@@ -67,7 +67,7 @@ class inter_reco(ds_project_base):
         self._out_runtag       = str(resource['OUT_RUNTAG'])
         self._script           = str(resource['SCRIPT'])
         self._valid_prefix     = str(resource['VALID_PREFIX'])
-        self._max_jobs         = int(200)
+        self._max_jobs         = int(500)
 
     def query_queue(self):
         """ data about slurm queue pertaining to inter_reco jobs"""
@@ -428,9 +428,12 @@ class inter_reco(ds_project_base):
 # A unit test section
 if __name__ == '__main__':
 
+    print "...Get TestObj..."
     test_obj = inter_reco(sys.argv[1])
     jobslaunched = False
+    print "...Process..."
     jobslaunched = test_obj.process_newruns()
+    print "...Validate..."
     test_obj.validate()
     print "...Error handle..."
     test_obj.error_handle()

@@ -32,7 +32,8 @@ class ll_reco(ds_project_base):
         self._container       = ""
         self._run_script      = ""
         self._sub_script      = ""
-        self._ismc            = ""
+        self._ismc_v          = ""
+        self._ismc_ts         = ""
         self._vtx_runtag      = ""
         self._st_runtag       = ""
         self._out_runtag      = ""
@@ -52,7 +53,7 @@ class ll_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(100)
+        self._nruns = int(200)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -63,7 +64,8 @@ class ll_reco(ds_project_base):
         self._container        = str(resource['CONTAINER'])
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
-        self._ismc             = str(resource['ISMC'])
+        self._ismc_v           = str(resource['VTX_ISMC'])
+        self._ismc_ts          = str(resource['TS_ISMC'])
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._st_runtag        = str(resource['ST_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
@@ -72,7 +74,7 @@ class ll_reco(ds_project_base):
         self._flash_inter      = str(resource['FLASH_INTER'])
         self._precut_txt       = str(resource['PRECUT_TXT'])
 
-        self._max_jobs         = int(300)
+        self._max_jobs         = int(500)
 
     def query_queue(self):
         """ data about slurm queue pertaining to ll_reco jobs"""
@@ -242,7 +244,9 @@ class ll_reco(ds_project_base):
 
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
-            run_data = run_data.replace("AAA",str(self._ismc))
+            
+            run_data = run_data.replace("AAA",str(self._ismc_v))
+            run_data = run_data.replace("FFF",str(self._ismc_ts))
 
             if len(self._cosmic_inter)>0:
                 run_data = run_data.replace("BBB",cosmic_inter)
