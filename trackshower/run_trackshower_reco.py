@@ -1,4 +1,4 @@
-import os, sys, pwd, commands, time, random
+import os, sys, pwd, commands, time, random, getpass
 from pub_dbi import DBException
 from dstream import DSException
 from dstream import ds_project_base
@@ -46,7 +46,9 @@ class st_reco(ds_project_base):
                       "jmoon02",
                       "ran01",
                       "lyates01",
-                      "ahourl01"]
+                      "ahourl01",
+                      "adiaz09"]
+        self.names = []
 
         
     ## @brief method to retrieve the project resource information if not yet done
@@ -274,7 +276,13 @@ class st_reco(ds_project_base):
                 else:
                     SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
                     SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
-                    name = random.choice(self.names)
+                    
+                    name = ""
+                    if len(self.names) == 0:
+                        name = str(getpass.getuser())
+                    else:
+                        name = random.choice(self.names)
+
                     SSH_PREFIX = SSH_PREFIX % (name,SS)
                     print "Submitted as name=%s" % name
                     psubmit = os.popen(SSH_PREFIX)
