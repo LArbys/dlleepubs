@@ -94,7 +94,9 @@ class xfer_input(ds_project_base):
                 os.system("mkdir -p %s"%(dbdir))
                 outfile[f] =  dbdir + "/" + self._outfile_format%(f,run,subrun)
                 #print infile[f] +" " + outfile[f]
-                cmd = "rsync -av --progress %s %s" % ( infile[f], outfile[f] )
+                SS = "rsync -av --progress %s %s" % ( infile[f], outfile[f] )
+                self.info(SS)
+                cmd = SS
                 #print cmd
                 prsyncout = os.popen( cmd )
                 rsyncout  = prsyncout.readlines()

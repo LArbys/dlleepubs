@@ -41,14 +41,8 @@ class st_reco(ds_project_base):
         self._in_runtag        = ""
         self._out_runtag       = ""
         self._max_jobs         = None
-        self.names = ["vgenty01",
-                      "cbarne06",
-                      "jmoon02",
-                      "ran01",
-                      "lyates01",
-                      "ahourl01",
-                      "adiaz09"]
-        self.names = []
+        self._usenames         = ""
+        self._usenames = []
 
         
     ## @brief method to retrieve the project resource information if not yet done
@@ -76,7 +70,17 @@ class st_reco(ds_project_base):
         self._in_runtag        = str(resource['IN_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
         self._max_jobs         = int(300)
-
+        self._usenames         = int(str(resource['ACCOUNT_SHARE']))
+        
+        if self._usenames == 1:
+            self._names = ["vgenty01",
+                           "cbarne06",
+                           "jmoon02",
+                           "ran01",
+                           "lyates01",
+                           "ahourl01",
+                           "adiaz09"]
+            
 
     def query_queue(self):
         """ data about slurm queue pertaining to st_reco jobs"""
@@ -278,10 +282,10 @@ class st_reco(ds_project_base):
                     SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
                     
                     name = ""
-                    if len(self.names) == 0:
+                    if len(self._names) == 0:
                         name = str(getpass.getuser())
                     else:
-                        name = random.choice(self.names)
+                        name = random.choice(self._names)
 
                     SSH_PREFIX = SSH_PREFIX % (name,SS)
                     print "Submitted as name=%s" % name

@@ -34,15 +34,8 @@ class vertex_reco(ds_project_base):
         self._sub_script       = ""
         self._runtag           = ""
         self._max_jobs         = None
-        self.names = ["vgenty01",
-                      "cbarne06",
-                      "jmoon02",
-                      "ran01",
-                      "lyates01",
-                      "ahourl01",
-                      "adiaz09"]
-        self.names = []
-
+        self._usenames         = 0
+        self._names            = []
         
     ## @brief method to retrieve the project resource information if not yet done
     def get_resource(self):
@@ -63,6 +56,16 @@ class vertex_reco(ds_project_base):
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._runtag           = str(resource['RUNTAG'])
         self._max_jobs         = int(300)
+        self._usenames         = int(str(resource['ACCOUNT_SHARE']))
+
+        if self._usenames == 1:
+            self._names = ["vgenty01",
+                           "cbarne06",
+                           "jmoon02",
+                           "ran01",
+                           "lyates01",
+                           "ahourl01",
+                           "adiaz09"]
 
     def query_queue(self):
         """ data about slurm queue pertaining to vertex_reco jobs"""
@@ -220,10 +223,10 @@ class vertex_reco(ds_project_base):
                     SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
                     
                     name = ""
-                    if len(self.names) == 0:
+                    if len(self._names) == 0:
                         name = str(getpass.getuser())
                     else:
-                        name = random.choice(self.names)
+                        name = random.choice(self._names)
 
                     SSH_PREFIX = SSH_PREFIX % (name,SS)
                     print "Submitted as name=%s" % name
