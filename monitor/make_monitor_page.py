@@ -17,7 +17,7 @@ for name in out:
         others.append(name[0])
 tablelist.sort()
 
-projectlist = ["xferinput","tagger","ssnet","freetaggercv","vertex","trackshower"]
+projectlist = ["xferinput","tagger","ssnet","freetaggercv","vertex","trackshower","likelihood"]
 #projectlist = ["xferinput","tagger","ssnet"]
 projectstatuscodes = { "xferinput":[1,2,3,None],
                        "tagger":[1,2,4,10],
