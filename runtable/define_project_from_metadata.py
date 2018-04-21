@@ -7,23 +7,40 @@ from datetime import tzinfo, timedelta, datetime
 
 PUB_DB_NAME=os.environ["PUB_PSQL_WRITER_DB"]
 
-def insert( runtable, dbconn, logger, ds, metadata, folders ):
+def insert_metadata( runtable, dbconn, logger, ds, metadata, folders ):
 
     ikeys = metadata.keys()
     ikeys.sort()
 
-    for k in ikeys[:10]:
-        entrydata = metdata[k]
+    for k in ikeys:
+        entrydata = metadata[k]
         
         run = int(k.split(".")[0])
         subrun = int(k.split(".")[1])
 
-        larcvsam  = entrydata["larcv-file"]
-        larcv     = folders["larcv"]+"/"+larcvsam        
-        oprecosam = entrydata["opreco-file"]
-        opreco    = folders["larlite"]+"/"+oprecosam
-        reco2dsam = entrydata["reco2d-file"]
-        reco2d    = folders["larlite"]+"/"+reco2dsam
+        complete = True
+        if "larcv-file" in entrydata:
+            larcvsam  = entrydata["larcv-file"]
+            larcv     = folders["larcv"]+"/"+larcvsam        
+        else:
+            larcvsam = ""
+            larcv = ""
+            complete = False
+        if "opreco-file" in entrydata:
+            oprecosam  = entrydata["opreco-file"]
+            opreco     = folders["opreco"]+"/"+oprecosam        
+        else:
+            oprecosam = ""
+            opreco = ""
+            complete = False
+        if "reco2d-file" in entrydata:
+            reco2dsam  = entrydata["reco2d-file"]
+            reco2d     = folders["reco2d"]+"/"+reco2dsam        
+        else:
+            reco2dsam = ""
+            reco2d = ""
+            complete = False
+
 
         ismc = False
         if "mcinfo-file" in entrydata and entrydata["mcinfo-file"] is not None:
@@ -35,7 +52,7 @@ def insert( runtable, dbconn, logger, ds, metadata, folders ):
             mcinfo = ""
             ismc = False
 
-        if "larcvtruth-file" in entryline and entrydata["larcvtruth-file"] is not None:
+        if "larcvtruth-file" in entrydata and entrydata["larcvtruth-file"] is not None:
             larcvtruthsam = entrydata["larcvtruth-file"]
             larcvtruth    = folders["larcvtruth"]+"/"+larcvtruthsam
         else:
@@ -47,12 +64,15 @@ def insert( runtable, dbconn, logger, ds, metadata, folders ):
             event_count = int( entrydata["event_count"] )
 
         runlist = ""
+        nfiles = -1
         if "listruns" in entrydata:
-            rl = entrydata["rl"]
+            rl = entrydata["listruns"]
             for r in rl:
                 runlist += "%d.%d"%(r[0],r[1])
                 if r !=rl[-1]:
                     runlist +=";"
+            nfiles = len(rl)
+
 
         ts     = (datetime.now()+timedelta(seconds= 0)).strftime('%Y-%m-%d %H:%M:%S')
         te     = (datetime.now()+timedelta(seconds=60)).strftime('%Y-%m-%d %H:%M:%S')
@@ -61,11 +81,11 @@ def insert( runtable, dbconn, logger, ds, metadata, folders ):
         ds.insert_into_death_star( runtable, run, subrun, ts, te)
     
         # insert into filepath table
-        tabledef = "( run, subrun, numevents, numfiles, runlist, ismc,"
+        tabledef = "( run, subrun, numevents, numfiles, runlist, ismc, complete,"
         tabledef += " supera, opreco, reco2d, mcinfo, larcvtruth," # current db paths
         tabledef += " superasam, oprecosam, reco2dsam, mcinfosam, larcvtruthsam)" # samweb unique names
-        values = (run,subrun,event_count,runlist,str(ismc).lower(),larcv,opreco,reco2d,mcinfo,larcvtruth,larcvsam,oprecosam,reco2dsam,mcinfosam,larcvtruthsam)
-        valuestr = "(%d,%d,%d,%d,'%s',%s,'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"%values
+        values = (run,subrun,event_count,nfiles,runlist,str(ismc).lower(),str(complete).lower(),larcv,opreco,reco2d,mcinfo,larcvtruth,larcvsam,oprecosam,reco2dsam,mcinfosam,larcvtruthsam)
+        valuestr = "(%d,%d,%d,%d,'%s',%s,%s,'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"%values
 
         print "inserting ",k
         os.system("psql -U tufts-pubs -h nudot.lns.mit.edu %s -c \"INSERT INTO %s_paths %s VALUES %s;\""
@@ -111,7 +131,7 @@ if __name__ == "__main__":
 
     if not hastable:
         os.system("$PUB_TOP_DIR/sbin/create_runtable %s"%(runtable))
-        tabledef =  "( run integer, subrun integer, numevents integer, numfiles integer, runlist text, ismc boolean,"
+        tabledef =  "( run integer, subrun integer, numevents integer, numfiles integer, runlist text, ismc boolean, complete boolean,"
         tabledef += " supera text, opreco text, reco2d text, mcinfo text, larcvtruth text," # current db paths
         tabledef += " superasam text, oprecosam text, reco2dsam text, mcinfosam text, larcvtruthsam text)" # samweb unique names
         os.system("psql -U tufts-pubs -h nudot.lns.mit.edu %s -c 'CREATE TABLE %s_paths %s;'"%(PUB_DB_NAME,runtable,tabledef))
@@ -128,5 +148,4 @@ if __name__ == "__main__":
     # put the information into the database table
     insert_metadata( runtable, dbconn, logger, ds, metadata, folders )
 
-    f.close()
 
