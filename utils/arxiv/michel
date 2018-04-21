@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#
+# dllee
+#
+python dlhadd.py MicroBooNE_Michel_JINST test10 dllee 1> michel_test10_dllee.log 2> michel_test10_dllee.err
+
+#
+# Final
+#
+python dlhadd.py MicroBooNE_Michel_JINST test10 Final 1> michel_test10_Final.log 2> michel_test10_Final.err
+
+#
+# inter
+#
+python dlhadd.py MicroBooNE_Michel_JINST test10 inter 1> michel_test10_inter.log 2> michel_test10_inter.err
+
+
+

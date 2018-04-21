@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#
+# inter
+#
+python dlhadd.py mcc8v4_cocktail_p00 test10_dedx track_dir_ana_ 1>cocktail_p00_test10_dedx_track_dir_ana_.log 2>cocktail_p00_test10_dedx_track_dir_ana.err
+python dlhadd.py mcc8v4_cocktail_p01 test10_dedx track_dir_ana_ 1> cocktail_p01_test10_dedx_track_dir_ana_.log 2> cocktail_p01_test10_dedx_track_dir_ana.err
+python dlhadd.py mcc8v4_cocktail_p02 test10_dedx track_dir_ana_ 1> cocktail_p02_test10_dedx_track_dir_ana_.log 2> cocktail_p02_test10_dedx_track_dir_ana.err
+python dlhadd.py mcc8v4_cocktail_p03 test10_dedx track_dir_ana_ 1> cocktail_p03_test10_dedx_track_dir_ana_.log 2> cocktail_p03_test10_dedx_track_dir_ana.err
+python dlhadd.py mcc8v4_cocktail_p04 test10_dedx track_dir_ana_ 1> cocktail_p04_test10_dedx_track_dir_ana_.log 2> cocktail_p04_test10_dedx_track_dir_ana.err
+
+python dlhadd.py mcc8v6_bnb5e19 test10_dedx track_dir_ana_ 1> bnb5e19_test10_dedx_track_dir_ana_.log 2> bnb5e19_test10_dedx_track_dir_ana.err
+python dlhadd.py mcc8v6_extbnb test10_dedx track_dir_ana_ 1> extbnb_test10_dedx_track_dir_ana_.log 2> extbnb_test10_dedx_track_dir_ana.err
+#python dlhadd.py overlay_bnbcosmic_full test10_dedx track_dir_ana_ 1> overlay_test10_dedx_track_dir_ana_.log 2> overlay_test10_dedx_track_dir_ana.err
+
+
+

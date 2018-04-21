@@ -1,4 +1,4 @@
-import os, sys, pwd, commands
+import os, sys, pwd, commands,random
 from pub_dbi import DBException
 from dstream import DSException
 from dstream import ds_project_base
@@ -34,6 +34,8 @@ class vertex_reco(ds_project_base):
         self._sub_script       = ""
         self._runtag           = ""
         self._max_jobs         = None
+        self._usenames         = 0
+        self._names            = []
         
     ## @brief method to retrieve the project resource information if not yet done
     def get_resource(self):
@@ -41,7 +43,7 @@ class vertex_reco(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         #self._nruns = int(resource['NRUNS'])
-        self._nruns = int(50)
+        self._nruns = int(10)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir        = str(resource['STAGE1DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
@@ -53,7 +55,17 @@ class vertex_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(200)
+        self._max_jobs         = int(300)
+        self._usenames         = int(str(resource['ACCOUNT_SHARE']))
+
+        if self._usenames == 1:
+            self._names = ["vgenty01",
+                           "cbarne06",
+                           "jmoon02",
+                           "ran01",
+                           "lyates01",
+                           "ahourl01",
+                           "adiaz09"]
 
     def query_queue(self):
         """ data about slurm queue pertaining to vertex_reco jobs"""
@@ -157,10 +169,12 @@ class vertex_reco(ds_project_base):
             cmd("mkdir -p %s" % (outdbdir))
 
             # copy config over
+            self.info("copy config")
             cmd("scp -r %s %s" % (self._vtxcfg,workdir))
             vtxcfg = os.path.join(workdir,os.path.basename(self._vtxcfg))
 
             # copy reco job template over
+            self.info("copy template")
             cmd("scp -r %s %s" % (self._run_script,workdir))
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
 
@@ -170,6 +184,7 @@ class vertex_reco(ds_project_base):
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
+            self.info("copy submission")
             cmd("scp -r %s %s" % (self._sub_script,workdir))
             sub_script = os.path.join(workdir,os.path.basename(self._sub_script))
             
@@ -185,17 +200,44 @@ class vertex_reco(ds_project_base):
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
-
             submissionok = False
             if True: # use this bool to turn off for testing
-                psubmit = os.popen("sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh"))
-                lsubmit = psubmit.readlines()
-                submissionid = ""
-                for l in lsubmit:
-                    l = l.strip()
-                    if "Submitted batch job" in l:
-                        submissionid = l.split()[-1].strip()
-                        submissionok = True
+
+                interactive = False
+
+                if interactive == True:
+                    SS = "%s &" % os.path.join(workdir,"submit_pubs_job_interactive.sh")
+                    psubmit = os.popen(SS)
+                    print "Sleeping..."
+                    time.sleep(5)
+                    print "...slept"
+                    lsubmit = None
+                    with open(os.path.join(workdir,"job.id"),'r') as f:
+                        lsubmit = f.read()
+
+                    lsubmit = lsubmit.strip()
+                    submissionid = lsubmit.split("=")[-1]
+                    submissionok = True
+                else:
+                    SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
+                    SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
+                    
+                    name = ""
+                    if len(self._names) == 0:
+                        name = str(getpass.getuser())
+                    else:
+                        name = random.choice(self._names)
+
+                    SSH_PREFIX = SSH_PREFIX % (name,SS)
+                    print "Submitted as name=%s" % name
+                    psubmit = os.popen(SSH_PREFIX)
+                    lsubmit = psubmit.readlines()
+                    submissionid = ""
+                    for l in lsubmit:
+                        l = l.strip()
+                        if "Submitted batch job" in l:
+                            submissionid = l.split()[-1].strip()
+                            submissionok = True
 
             # Create a status object to be logged to DB (if necessary)
             if submissionok:
@@ -353,6 +395,7 @@ class vertex_reco(ds_project_base):
 if __name__ == '__main__':
 
     test_obj = vertex_reco(sys.argv[1])
+    jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
     test_obj.error_handle()

@@ -10,8 +10,11 @@ def ls_gpu():
     num_jobs  = {}
     mem_max   = []
     for l in output.split('\n'):
+        l = l.strip()
         words=l.split()
         if len(words) < 4: continue
+        if "No running processes found" in l:
+            continue
     
         if words[1].isdigit():
             gpu_id  = int(words[1])

@@ -62,18 +62,19 @@ class dlleepubsutils(ds_project_base):
         
         return info
 
-    def fetch_completed_entries(self,runtable,endpath="ssnet"):
+    def fetch_completed_entries(self,runtable,endpath="ssnet",endstatus=4):
 
         # Attempt to connect DB. If failure, abort
         if not self.connect():
 	    self.error('Cannot connect to DB! Aborting...')
 	    return
 
-        project_prefixes = ["xferinput","tagger","ssnet"]
-        good_status      = [3,4,4]
-        projects = []
-        for prefix in project_prefixes:
-            projects.append( prefix+"_"+runtable )
+        #project_prefixes = ["xferinput","tagger","ssnet"]
+        #good_status      = [3,4,4]
+        projects = [endpath+"_"+runtable]
+        good_status = [endstatus]
+        #for prefix in project_prefixes:
+        #    projects.append( prefix+"_"+runtable )
         
         self._filetable = runtable + "_paths"
         #runlist = self.get_xtable_runs(projects,good_status)
@@ -81,7 +82,8 @@ class dlleepubsutils(ds_project_base):
         # Get files
 
         # Fetch runs from DB and process for # runs specified for this instance.
-        query =  "select t1.run,t1.subrun,supera,opreco,reco2d,mcinfo"
+        #query =  "select t1.run,t1.subrun,supera,opreco,reco2d,mcinfo"
+        query =  "select t1.run,t1.subrun,supera,opreco,reco2d,mcinfo,superasam,oprecosam,reco2dsam,mcinfosam"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (projects[-1], self._filetable)
         query += " where t1.status=%d order by run, subrun asc" % (good_status[-1]) 
 
@@ -92,10 +94,10 @@ class dlleepubsutils(ds_project_base):
         for x in results:
             run = int(x[0])
             subrun = int(x[1])
-            filedict = {"supera":x[2],"opreco":x[3],"reco2d":x[4],"mcinfo":x[5]}
+            filedict = {"supera":x[2],"opreco":x[3],"reco2d":x[4],"mcinfo":x[5],"superasam":x[6],"oprecosam":x[7],"reco3dsam":x[8],"mcinfosam":x[9]}
             datafolder = os.path.dirname(x[2])
-            filedict["tagger-larcv"]   = datafolder+"/taggerout-larcv-Run%06d-SubRun%06d.root"%(run,subrun)
             filedict["tagger-larlite"] = datafolder+"/taggerout-larlite-Run%06d-SubRun%06d.root"%(run,subrun)
+            filedict["tagger-larcv"] = datafolder+"/taggerout-larcv-Run%06d-SubRun%06d.root"%(run,subrun)
             filedict["ssnet-larcv"] = datafolder+"/ssnetout-larcv-Run%06d-SubRun%06d.root"%(run,subrun)
             rundict[(run,subrun)] = filedict
         return rundict
@@ -133,7 +135,21 @@ class dlleepubsutils(ds_project_base):
                     cmd = "ln -s %s %s"%(forig,flink)
                     os.system(cmd)
         return
+
+    def make_samweb_list(self,runtable,fileout,inputfiletype,endpath="likelihood",endstatus=4):
+        completed = self.fetch_completed_entries(runtable,endpath,endstatus)
+        self.info( "[Make Samweb list] Number of entries completed to %s (w/ status=%d): %d"%(endpath,endstatus,len(completed)) )
+
+        f = open(fileout,'w')
+        indices = completed.keys()
+        indices.sort()
+        for index in indices:
+            print >> f,completed[index][inputfiletype]
+        f.close()
+
+        self.info("[Make Samweb list] wrote list of source samweb files (%s) to %s"%(inputfiletype,fileout))
         
+        return 
 
 
 # A unit test section
@@ -157,7 +173,9 @@ if __name__ == '__main__':
     #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v4_cocktail_p04", "mcc8v4_cocktail_p04" )
     #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v3_corsika_p00", "corsika_mcc8v3_p00" )
     #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v3_corsika_p01", "corsika_mcc8v3_p01" )
-    test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v3_corsika_p02", "corsika_mcc8v3_p02" )
+    #test_obj.make_symlinks( "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/symlinks/mcc8v3_corsika_p02", "corsika_mcc8v3_p02" )
+
+    test_obj.make_samweb_list( "mcc8v6_bnb5e19", "mcc8v6_bnb5e19_samweb_larcv2.txt", "superasam", "vertex", 4 )
 
     
 

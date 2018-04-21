@@ -9,6 +9,9 @@ def extract_rse_larcv( rootfilepath, iopset, producer="wire" ):
     io = larcv.IOManager( iopset )
     io.add_in_file( rootfilepath )
     io.initialize()
+
+    nentries = io.get_n_entries()
+
     io.read_entry(0)
 
     imgdata = io.get_data( larcv.kProductImage2D, producer )
@@ -163,11 +166,14 @@ if __name__=="__main__":
 
     f = open('filelist.txt','w')
 
+    g = open('incomplete.txt','w')
+
     for rse in rselist:
         fdict = filedict[rse]
         print rse,fdict
         if "supera" not in fdict or "opreco" not in fdict or "reco2d" not in fdict:
             print rse," not complete"
+            print >> g,fdict
             continue
         print >> f,rse[0],'\t',rse[1],'\t',rse[2],'\t',"supera:"+fdict["supera"],'\t',"opreco:"+fdict["opreco"],'\t',"reco2d:"+fdict["reco2d"],
         if "mcinfo" in fdict:
@@ -178,6 +184,7 @@ if __name__=="__main__":
             
 
     f.close()
+    g.close()
             
 
 

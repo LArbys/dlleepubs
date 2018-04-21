@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#
+# dllee
+#
+python dlhadd.py overlay_bnbcosmic_full test8 dllee 1>overlay_full_test8_dllee.log 2>overlay_full_test8_dllee.err
+
+#
+# Final
+#
+python dlhadd.py overlay_bnbcosmic_full test8 Final 1>overlay_full_test8_Final.log 2>overlay_full_test8_Final.err
+
+#
+# inter
+#
+python dlhadd.py overlay_bnbcosmic_full test8 inter 1>overlay_full_test8_inter.log 2>overlay_full_test8_inter.err
+

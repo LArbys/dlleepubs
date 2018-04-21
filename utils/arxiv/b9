@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#
+# dllee
+#
+python dlhadd.py mcc8v4_cocktail_p00 test10 dllee 1>cocktail_p00_test10_dllee.log 2>cocktail_p00_test10_dllee.err
+python dlhadd.py mcc8v4_cocktail_p01 test10 dllee 1> cocktail_p01_test10_dllee.log 2> cocktail_p01_test10_dllee.err
+python dlhadd.py mcc8v4_cocktail_p02 test10 dllee 1> cocktail_p02_test10_dllee.log 2> cocktail_p02_test10_dllee.err
+python dlhadd.py mcc8v4_cocktail_p03 test10 dllee 1> cocktail_p03_test10_dllee.log 2> cocktail_p03_test10_dllee.err
+python dlhadd.py mcc8v4_cocktail_p04 test10 dllee 1> cocktail_p04_test10_dllee.log 2> cocktail_p04_test10_dllee.err
+
+python dlhadd.py corsika_mcc8v3_p00 test10 dllee 1> corsika_p00_test10_dllee.log 2> corsika_p00_test10_dllee.err
+python dlhadd.py corsika_mcc8v3_p01 test10 dllee 1> corsika_p01_test10_dllee.log 2> corsika_p01_test10_dllee.err
+python dlhadd.py corsika_mcc8v3_p02 test10 dllee 1> corsika_p02_test10_dllee.log 2> corsika_p02_test10_dllee.err
+
+python dlhadd.py mcc8v6_bnb5e19 test10 dllee 1> bnb5e19_test10_dllee.log 2> bnb5e19_test10_dllee.err
+python dlhadd.py mcc8v6_extbnb test10 dllee 1> extbnb_test10_dllee.log 2> extbnb_test10_dllee.err
+
+#
+# Final
+#
+python dlhadd.py mcc8v4_cocktail_p00 test10 Final 1>cocktail_p00_test10_Final.log 2>cocktail_p00_test10_Final.err
+python dlhadd.py mcc8v4_cocktail_p01 test10 Final 1> cocktail_p01_test10_Final.log 2> cocktail_p01_test10_Final.err
+python dlhadd.py mcc8v4_cocktail_p02 test10 Final 1> cocktail_p02_test10_Final.log 2> cocktail_p02_test10_Final.err
+python dlhadd.py mcc8v4_cocktail_p03 test10 Final 1> cocktail_p03_test10_Final.log 2> cocktail_p03_test10_Final.err
+python dlhadd.py mcc8v4_cocktail_p04 test10 Final 1> cocktail_p04_test10_Final.log 2> cocktail_p04_test10_Final.err
+
+python dlhadd.py corsika_mcc8v3_p00 test10 Final 1> corsika_p00_test10_Final.log 2> corsika_p00_test10_Final.err
+python dlhadd.py corsika_mcc8v3_p01 test10 Final 1> corsika_p01_test10_Final.log 2> corsika_p01_test10_Final.err
+python dlhadd.py corsika_mcc8v3_p02 test10 Final 1> corsika_p02_test10_Final.log 2> corsika_p02_test10_Final.err
+
+python dlhadd.py mcc8v6_bnb5e19 test10 Final 1> bnb5e19_test10_Final.log 2> bnb5e19_test10_Final.err
+python dlhadd.py mcc8v6_extbnb test10 Final 1> extbnb_test10_Final.log 2> extbnb_test10_Final.err
+
+#
+# inter
+#
+python dlhadd.py mcc8v4_cocktail_p00 test10 inter 1>cocktail_p00_test10_inter.log 2>cocktail_p00_test10_inter.err
+python dlhadd.py mcc8v4_cocktail_p01 test10 inter 1> cocktail_p01_test10_inter.log 2> cocktail_p01_test10_inter.err
+python dlhadd.py mcc8v4_cocktail_p02 test10 inter 1> cocktail_p02_test10_inter.log 2> cocktail_p02_test10_inter.err
+python dlhadd.py mcc8v4_cocktail_p03 test10 inter 1> cocktail_p03_test10_inter.log 2> cocktail_p03_test10_inter.err
+python dlhadd.py mcc8v4_cocktail_p04 test10 inter 1> cocktail_p04_test10_inter.log 2> cocktail_p04_test10_inter.err
+
+python dlhadd.py corsika_mcc8v3_p00 test10 inter 1> corsika_p00_test10_inter.log 2> corsika_p00_test10_inter.err
+python dlhadd.py corsika_mcc8v3_p01 test10 inter 1> corsika_p01_test10_inter.log 2> corsika_p01_test10_inter.err
+python dlhadd.py corsika_mcc8v3_p02 test10 inter 1> corsika_p02_test10_inter.log 2> corsika_p02_test10_inter.err
+
+python dlhadd.py mcc8v6_bnb5e19 test10 inter 1> bnb5e19_test10_inter.log 2> bnb5e19_test10_inter.err
+python dlhadd.py mcc8v6_extbnb test10 inter 1> extbnb_test10_inter.log 2> extbnb_test10_inter.err
+
+
+

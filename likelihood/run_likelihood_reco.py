@@ -1,4 +1,4 @@
-import os, sys, pwd, commands
+import os, sys, pwd, commands, time, random
 from pub_dbi import DBException
 from dstream import DSException
 from dstream import ds_project_base
@@ -21,28 +21,35 @@ class ll_reco(ds_project_base):
         # Call base class ctor
         super(ll_reco,self).__init__()
 
-        self._nruns            = None
-        self._parent_project   = ""
-        self._input_dir1       = ""
-        self._input_dir2       = ""
-        self._file_format      = ""
-        self._out_dir          = ""
-        self._filetable        = ""
-        self._grid_workdir     = ""
-        self._container        = ""
-        self._run_script       = ""
-        self._sub_script       = ""
-        self._ismc             = ""
-        self._runtag           = ""
-        self._max_jobs         = None
-        
+        self._nruns           = None
+        self._parent_project  = ""
+        self._input_dir1      = ""
+        self._input_dir2      = ""
+        self._file_format     = ""
+        self._out_dir         = ""
+        self._filetable       = ""
+        self._grid_workdir    = ""
+        self._container       = ""
+        self._run_script      = ""
+        self._sub_script      = ""
+        self._ismc_v          = ""
+        self._ismc_ts         = ""
+        self._vtx_runtag      = ""
+        self._st_runtag       = ""
+        self._out_runtag      = ""
+        self._cosmic_inter    = ""
+        self._flash_inter     = ""
+        self._precut_txt      = ""
+        self._max_jobs        = None
+        self._usenames        = ""
+        self._names = []
+
     ## @brief method to retrieve the project resource information if not yet done
     def get_resource(self):
 
         resource = self._api.get_resource(self._project)
         
-        #self._nruns = int(resource['NRUNS'])
-        self._nruns = int(50)
+        self._nruns = int(200)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -53,9 +60,28 @@ class ll_reco(ds_project_base):
         self._container        = str(resource['CONTAINER'])
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
-        self._ismc             = str(resource['ISMC'])
-        self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(20)
+        self._ismc_v           = str(resource['VTX_ISMC'])
+        self._ismc_ts          = str(resource['TS_ISMC'])
+        self._vtx_runtag       = str(resource['VTX_RUNTAG'])
+        self._st_runtag        = str(resource['ST_RUNTAG'])
+        self._out_runtag       = str(resource['OUT_RUNTAG'])
+        
+        self._cosmic_inter     = str(resource['COSMIC_INTER'])
+        self._flash_inter      = str(resource['FLASH_INTER'])
+        self._precut_txt       = str(resource['PRECUT_TXT'])
+
+        self._max_jobs         = int(500)
+        self._usenames         = int(str(resource['ACCOUNT_SHARE']))
+        
+        if self._usenames == 1:
+            self._names = ["vgenty01",
+                           "cbarne06",
+                           "jmoon02",
+                           "ran01",
+                           "lyates01",
+                           "ahourl01",
+                           "adiaz09"]
+
 
     def query_queue(self):
         """ data about slurm queue pertaining to ll_reco jobs"""
@@ -109,7 +135,6 @@ class ll_reco(ds_project_base):
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project, self._filetable)
         query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
         query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
-
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         ijob = 0
@@ -119,19 +144,15 @@ class ll_reco(ds_project_base):
             run    = int(x[0])
             subrun = int(x[1])
 
-            # job variables
-            jobtag,inputdbdir1,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
-                                                          self._input_dir1,self._out_dir)
 
-            jobtag,inputdbdir2,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
-                                                          self._input_dir2,self._out_dir)
+            _     , _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"","",self._out_dir)
+            _     , _, inputdbdir2 = cast_run_subrun(run,subrun,self._st_runtag,"","",self._out_dir)
+            jobtag, _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"","",self._out_dir)
             
-
+            
             # prepare work dir
             self.info("Making work directory")
-            workdir      = os.path.join(self._grid_workdir,"ll",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir      = os.path.join(self._grid_workdir,"ll",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             inputlistdir = os.path.join(workdir,"inputlists")
             stat,out = commands.getstatusoutput("mkdir -p %s"%(inputlistdir))
             self.info("...made workdir for (%d,%d) at %s"%(run,subrun,workdir))
@@ -140,10 +161,33 @@ class ll_reco(ds_project_base):
             #
             # prepare input lists
             #
-            vertexout_input  = os.path.join(outdbdir,"vertexout_%d.root" % jobtag)
-            vertexana_input  = os.path.join(outdbdir,"vertexana_%d.root" % jobtag)
-            trackerana_input = os.path.join(outdbdir,"tracker_anaout_%d.root" % jobtag)
-            rst_pkl_input    = os.path.join(outdbdir,"rst_comb_df_%d.pkl" % jobtag)
+            vertexout_input  = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
+            vertexana_input  = os.path.join(inputdbdir1,"vertexana_%d.root" % jobtag)
+            trackerana_input = os.path.join(inputdbdir2,"tracker_anaout_%d.root" % jobtag)
+            showerana_input  = os.path.join(inputdbdir2,"showerqualsingle_%d.root" % jobtag)
+            rst_pkl_input    = os.path.join(inputdbdir2,"rst_comb_df_%d.pkl" % jobtag)
+            
+
+            #
+            # other inputs used to make the combined file (hadded)
+            #
+            multipid_input             = os.path.join(inputdbdir2,"multipid_out_%d.root" % jobtag)
+            showerqualsingle_input     = os.path.join(inputdbdir2,"showerqualsingle_%d.root" % jobtag)
+            shower_truth_match_input   = os.path.join(inputdbdir2,"shower_truth_match_%d.root" % jobtag)
+            tracker_ana_out_input      = os.path.join(inputdbdir2,"tracker_anaout_%d.root" % jobtag)
+            track_pgraph_match_input   = os.path.join(inputdbdir2,"track_pgraph_match_%d.root" % jobtag)
+            trackqualsingle_input      = os.path.join(inputdbdir2,"trackqualsingle_%d.root" % jobtag)
+            track_truth_match_input    = os.path.join(inputdbdir2,"track_truth_match_%d.root" % jobtag)
+            FinalVertexVariables_input = "FinalVertexVariables_%d.root" % jobtag
+            
+            #
+            # inter files
+            #
+            _,_,inputdbdir3 = cast_run_subrun(run,subrun,self._cosmic_inter,"","",self._out_dir)
+            _,_,inputdbdir4 = cast_run_subrun(run,subrun,self._flash_inter,"","",self._out_dir)
+
+            cosmic_inter = os.path.join(inputdbdir3,"cosmic_ana_%d.root" % jobtag)
+            flash_inter  = os.path.join(inputdbdir4,"flash_ana_%d.root" % jobtag)
             
             # vertexout
             inputlist_f = open(os.path.join(inputlistdir,"vertex_out_inputlist_%05d.txt"% int(jobtag)),"w+")
@@ -160,9 +204,27 @@ class ll_reco(ds_project_base):
             inputlist_f.write("%s" % trackerana_input)
             inputlist_f.close()
 
+            # shower ana
+            inputlist_f = open(os.path.join(inputlistdir,"shower_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % showerana_input)
+            inputlist_f.close()
+
             # pkl
             inputlist_f = open(os.path.join(inputlistdir,"rst_pkl_inputlist_%05d.txt"% int(jobtag)),"w+")
             inputlist_f.write("%s" % rst_pkl_input)
+            inputlist_f.close()
+
+            # all vertex
+            inputlist_f = open(os.path.join(inputlistdir,"all_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % vertexana_input)
+            inputlist_f.write(" %s" % multipid_input)
+            inputlist_f.write(" %s" % showerqualsingle_input)
+            inputlist_f.write(" %s" % shower_truth_match_input)
+            inputlist_f.write(" %s" % tracker_ana_out_input)
+            inputlist_f.write(" %s" % track_pgraph_match_input)
+            inputlist_f.write(" %s" % trackqualsingle_input)
+            inputlist_f.write(" %s" % track_truth_match_input)
+            inputlist_f.write(" %s" % FinalVertexVariables_input)
             inputlist_f.close()
 
             # runlist
@@ -189,7 +251,28 @@ class ll_reco(ds_project_base):
 
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
-            run_data = run_data.replace("AAA",str(self._ismc))
+            
+            run_data = run_data.replace("AAA",str(self._ismc_v))
+            run_data = run_data.replace("FFF",str(self._ismc_ts))
+
+            if len(self._cosmic_inter)>0:
+                run_data = run_data.replace("BBB",cosmic_inter)
+
+            else:
+                run_data = run_data.replace("BBB","\"\"")
+
+            if len(self._flash_inter)>0:
+                run_data = run_data.replace("CCC",flash_inter)
+            else:
+                run_data = run_data.replace("CCC","\"\"")
+
+            run_data = run_data.replace("DDD","\\\"\\\"")
+
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._precut_txt,workdir))
+            self.info(".... %d %s"%(stat,out))
+            precut_txt = os.path.join(workdir,os.path.basename(self._precut_txt))
+            run_data = run_data.replace("EEE",precut_txt)
+
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
@@ -212,14 +295,43 @@ class ll_reco(ds_project_base):
 
             submissionok = False
             if True: # use this bool to turn off for testing
-                psubmit = os.popen("sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh"))
-                lsubmit = psubmit.readlines()
-                submissionid = ""
-                for l in lsubmit:
-                    l = l.strip()
-                    if "Submitted batch job" in l:
-                        submissionid = l.split()[-1].strip()
-                        submissionok = True
+
+                interactive = False
+
+                if interactive == True:
+                    SS = "%s &" % os.path.join(workdir,"submit_pubs_job_interactive.sh")
+                    psubmit = os.popen(SS)
+                    print "Sleeping..."
+                    time.sleep(5)
+                    print "...slept"
+                    lsubmit = None
+                    with open(os.path.join(workdir,"job.id"),'r') as f:
+                        lsubmit = f.read()
+
+                    lsubmit = lsubmit.strip()
+                    submissionid = lsubmit.split("=")[-1]
+                    submissionok = True
+                else:
+                    SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
+                    SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
+
+                    name = ""
+                    if len(self._names) == 0:
+                        name = str(getpass.getuser())
+                    else:
+                        name = random.choice(self._names)
+
+                    SSH_PREFIX = SSH_PREFIX % (name,SS)
+                    print "Submitted as name=%s" % name
+                    psubmit = os.popen(SSH_PREFIX)
+                    lsubmit = psubmit.readlines()
+                    submissionid = ""
+                    for l in lsubmit:
+                        l = l.strip()
+                        if "Submitted batch job" in l:
+                            submissionid = l.split()[-1].strip()
+                            submissionok = True
+
 
             # Create a status object to be logged to DB (if necessary)
             if submissionok:
@@ -303,6 +415,7 @@ class ll_reco(ds_project_base):
         query =  "select t1.run,t1.subrun,supera"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
         query += " where t1.status=3 and t1.seq=0 order by run, subrun desc"
+
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of ll_reco jobs in finished state: %d"%(len(results)))
@@ -312,7 +425,7 @@ class ll_reco(ds_project_base):
 
             # form output file names/workdir
             jobtag,inputdbdir2,outdbdir = cast_run_subrun(run,subrun,
-                                                          self._runtag,self._file_format,
+                                                          self._out_runtag,self._file_format,
                                                           self._input_dir1,self._out_dir)
             # link
             #st_pkl1 = os.path.join(outdbdir,"vertexout_filter_%d.root" % jobtag)
@@ -361,8 +474,10 @@ class ll_reco(ds_project_base):
             # we clean out the workdir
             run     = int(x[0])
             subrun  = int(x[1])
-            workdir = os.path.join(self._grid_workdir,"ll",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
-            os.system("rm -rf %s"%(workdir))
+            workdir = os.path.join(self._grid_workdir,"ll",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            SS = "rm -rf %s"%(workdir)
+            self.info(SS)
+            os.system(SS)
             # reset the status
             data = ''
             status = ds_status( project = self._project,
@@ -377,9 +492,8 @@ class ll_reco(ds_project_base):
 if __name__ == '__main__':
 
     test_obj = ll_reco(sys.argv[1])
-    jobslaunched = test_obj.process_newruns()
     jobslaunched = False
-    if not jobslaunched:
-        test_obj.validate()
-        #test_obj.error_handle()
+    jobslaunched = test_obj.process_newruns()
+    test_obj.validate()
+    test_obj.error_handle()
 

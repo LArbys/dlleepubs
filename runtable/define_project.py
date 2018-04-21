@@ -57,7 +57,7 @@ print "PUB interfaces start"
 runtable = sys.argv[1]
 flist    = sys.argv[2]
 
-os.system("~/pubs/sbin/remove_runtable %s"%(runtable))
+os.system("$PUB_TOP_DIR/sbin/remove_runtable %s"%(runtable))
 os.system("psql -U tufts-pubs -h nudot.lns.mit.edu %s -c 'DROP TABLE %s_paths;'"%(PUB_DB_NAME,runtable))
 
 dumptablescmd = "psql -U tufts-pubs -h nudot.lns.mit.edu %s -c '\dt'"%(PUB_DB_NAME)
@@ -80,7 +80,7 @@ else:
 hastable = False
 
 if not hastable:
-    os.system("~/pubs/sbin/create_runtable %s"%(runtable))
+    os.system("$PUB_TOP_DIR/sbin/create_runtable %s"%(runtable))
     tabledef = "( run integer, subrun integer, ismc boolean, supera text, opreco text, reco2d text, mcinfo text, larcvtruth text," # current db paths
     tabledef += " superasam text, oprecosam text, reco2dsam text, mcinfosam text, larcvtruthsam text)" # samweb unique names
     os.system("psql -U tufts-pubs -h nudot.lns.mit.edu %s -c 'CREATE TABLE %s_paths %s;'"%(PUB_DB_NAME,runtable,tabledef))
