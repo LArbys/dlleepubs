@@ -66,9 +66,22 @@ class xfer_input(ds_project_base):
         # Fetch runs from DB and process for # runs specified for this instance.
         ctr = self._nruns
 
+        # check if database has new metadata (complete and numevents)
+        self._api._cursor.execute("select count(column_name) from information_schema.columns where table_name='%s' and column_name='complete'"%(self._filetable))
+        hascomplete = self._api._cursor.fetchall()[0]
+        self._api._cursor.execute("select count(column_name) from information_schema.columns where table_name='%s' and column_name='numevents'"%(self._filetable))
+        hasnumevents = self._api._cursor.fetchall()[0]
+
         # Get Runs with status=1 or 2 (0=notrun,1=copied,2=error,3=done)
-        query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun) where status=1 order by run, subrun asc limit %d" 
-        query = query % (self._project,self._project,self._project,self._filetable,self._project,self._filetable,self._project,self._filetable,self._nruns)
+        if hascomplete==0 or hasnumevents==0:
+            query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun) where status=1 order by run, subrun asc limit %d" 
+            query = query % (self._project,self._project,self._project,self._filetable,self._project,self._filetable,self._project,self._filetable,self._nruns)
+        else:
+            self.info("excluding bad runs using complete and numevents columns")
+            query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun)"
+            query += " where status=1 and complete=true and  numevents>0"
+            query += " order by run, subrun asc limit %d" 
+            query = query % (self._project,self._project,self._project,self._filetable,self._project,self._filetable,self._project,self._filetable,self._nruns)            
 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
