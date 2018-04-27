@@ -42,7 +42,7 @@ class st_reco(ds_project_base):
         self._out_runtag       = ""
         self._max_jobs         = None
         self._usenames         = ""
-        self._usenames = []
+        self._names = []
 
         
     ## @brief method to retrieve the project resource information if not yet done
@@ -457,5 +457,5 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     # if not jobslaunched:
     test_obj.validate()
-    test_obj.error_handle()
+    #test_obj.error_handle()
         

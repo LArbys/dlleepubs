@@ -47,7 +47,7 @@ class ssnet(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         self._nruns = int(resource['NRUNS'])
-        self._nruns = 5
+        #self._nruns = 50
         self._parent_project = resource['SOURCE_PROJECT']
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
@@ -55,11 +55,11 @@ class ssnet(ds_project_base):
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._container      = resource['CONTAINER']
         self._container_alphaomega = "/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-dllee-ssnet/singularity-dllee-ssnet-nvidia375.20.img"
-        self._max_jobs       = 16+16+3+3+3
-        self._pgpu_node_limit = 16
+        self._max_jobs       = 14+14+2+2+40
+        self._pgpu_node_limit = 14
         #self._pgpu03_node_limit = 7*5
-        self._pgpu03_node_limit = 3 # start with small test, if works, remove and uncomment above, then change last 3 in _max_jobs to 35
-        self._ao_node_limit   = 3
+        self._pgpu03_node_limit = 40 # start with small test, if works, remove and uncomment above, then change last 3 in _max_jobs to 35
+        self._ao_node_limit   = 2
 
     def query_queue(self):
         """ data about slurm queue pertaining to ssnet jobs"""
@@ -196,7 +196,7 @@ class ssnet(ds_project_base):
                 submitnode="NOMEGA025"
             elif qinfo["NPGPU02"]<self._pgpu_node_limit:
                 submitnode="NPGPU02" 
-            elif qinfo["NPGPU03"]<self._pgpu3_node_limit:
+            elif qinfo["NPGPU03"]<self._pgpu03_node_limit:
                 submitnode="NPGPU03" 
             else:
                 submitnode=""
@@ -340,7 +340,7 @@ srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
 
         query =  "select t1.run,t1.subrun,supera,opreco"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
-        query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit 10"
+        query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit %d"%(self._nruns)
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of ssnet jobs in finished state: %d"%(len(results)))
