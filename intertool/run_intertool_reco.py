@@ -451,5 +451,5 @@ if __name__ == '__main__':
     print "...Validate..."
     test_obj.validate()
     print "...Error handle..."
-    #test_obj.error_handle()
+    test_obj.error_handle()
 
