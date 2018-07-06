@@ -33,7 +33,8 @@ class inter_reco(ds_project_base):
         self._run_script      = ""
         self._sub_script      = ""
         self._vtx_runtag      = ""
-        self._st_runtag       = ""
+        self._trk_runtag      = ""
+        self._shr_runtag      = ""
         self._out_runtag      = ""
         self._script          = ""
         self._valid_prefix    = ""
@@ -139,8 +140,8 @@ class inter_reco(ds_project_base):
             subrun = int(x[1])
             _     , inputdbdir0,           _ = cast_run_subrun(run,subrun,              "","", self._input_dir1,""           )
             _     ,           _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"",               "",self._out_dir)
-            _     ,           _, inputdbdir2 = cast_run_subrun(run,subrun,self._stp_runtag,"",               "",self._out_dir)
-            _     ,           _, inputdbdir3 = cast_run_subrun(run,subrun,self._ll_runtag ,"",               "",self._out_dir)
+            _     ,           _, inputdbdir2 = cast_run_subrun(run,subrun,self._trk_runtag,"",               "",self._out_dir)
+            _     ,           _, inputdbdir3 = cast_run_subrun(run,subrun,self._shr_runtag,"",               "",self._out_dir)
             jobtag,           _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"",               "",self._out_dir)
             
             
@@ -162,7 +163,6 @@ class inter_reco(ds_project_base):
             opreco_input   += ".root"
 
             vertexout_input = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
-            inter_input     = os.path.join(inputdbdir2,"intermediate_file_%d.root" % jobtag)
 
             # ssnet
             inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")

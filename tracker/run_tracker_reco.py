@@ -66,7 +66,7 @@ class trackerreco(ds_project_base):
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
         if self._usenames == 1:
-            self._names = [#"vgenty01",
+            self._names = ["vgenty01",
                            "cbarne06",
                            "jmoon02",
                            "ran01",

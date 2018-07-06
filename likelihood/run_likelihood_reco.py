@@ -7,10 +7,10 @@ from dstream import ds_status
 sys.path.insert(0,os.path.join(os.environ["PUB_TOP_DIR"],"dlleepubs"))
 from utils.downstream_utils import *
 
-class numu_ll_reco(ds_project_base):
+class likelihood_reco(ds_project_base):
 
     # Define project name as class attribute
-    _project = 'numu_ll_reco'
+    _project = 'likelihood_reco'
 
     ## @brief default ctor can take # runs to process for this instance
     def __init__(self,project_name):
@@ -19,7 +19,7 @@ class numu_ll_reco(ds_project_base):
             self._project = project_name
 
         # Call base class ctor
-        super(numu_ll_reco,self).__init__()
+        super(likelihood_reco,self).__init__()
 
         self._nruns           = None
         self._parent_project  = ""
@@ -32,14 +32,9 @@ class numu_ll_reco(ds_project_base):
         self._container       = ""
         self._run_script      = ""
         self._sub_script      = ""
-        self._ismc_v          = ""
-        self._ismc_ts         = ""
         self._vtx_runtag      = ""
-        self._st_runtag       = ""
+        self._trk_runtag      = ""
         self._out_runtag      = ""
-        self._cosmic_inter    = ""
-        self._flash_inter     = ""
-        self._precut_txt      = ""
         self._max_jobs        = None
         self._usenames        = ""
         self._names = []
@@ -60,10 +55,8 @@ class numu_ll_reco(ds_project_base):
         self._container        = str(resource['CONTAINER'])
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
-        self._ismc_v           = str(resource['VTX_ISMC'])
-        self._ismc_ts          = str(resource['TS_ISMC'])
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
-        self._st_runtag        = str(resource['ST_RUNTAG'])
+        self._trk_runtag       = str(resource['TRK_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
         self._max_jobs         = int(10000)
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
@@ -79,8 +72,8 @@ class numu_ll_reco(ds_project_base):
 
 
     def query_queue(self):
-        """ data about slurm queue pertaining to numu_ll_reco jobs"""
-        psqueue = commands.getoutput("squeue | grep ll_")
+        """ data about slurm queue pertaining to likelihood_reco jobs"""
+        psqueue = commands.getoutput("squeue | grep likelihood_")
         lsqueue = psqueue.split('\n')
 
         info = {"numjobs":0,"jobids":[]}
@@ -111,7 +104,7 @@ class numu_ll_reco(ds_project_base):
         jobslaunched = False
         
         if nremaining<=0:
-            self.info("Already running (%d) max number of numu_ll_reco jobs (%d)" % (len(results),self._max_jobs) )
+            self.info("Already running (%d) max number of likelihood_reco jobs (%d)" % (len(results),self._max_jobs) )
             return
 
         if nremaining>self._nruns:
@@ -139,9 +132,8 @@ class numu_ll_reco(ds_project_base):
             run    = int(x[0])
             subrun = int(x[1])
 
-
             _     , _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"","",self._out_dir)
-            _     , _, inputdbdir2 = cast_run_subrun(run,subrun,self._st_runtag,"","",self._out_dir)
+            _     , _, inputdbdir2 = cast_run_subrun(run,subrun,self._trk_runtag,"","",self._out_dir)
             jobtag, _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"","",self._out_dir)
             
             
@@ -152,19 +144,13 @@ class numu_ll_reco(ds_project_base):
             stat,out = commands.getstatusoutput("mkdir -p %s"%(inputlistdir))
             self.info("...made workdir for (%d,%d) at %s"%(run,subrun,workdir))
             self.info("..... %d %s"%(stat,out))
-
+            
             #
             # prepare input lists
             #
-            vertexout_input  = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
             vertexana_input  = os.path.join(inputdbdir1,"vertexana_%d.root" % jobtag)
             trackerana_input = os.path.join(inputdbdir2,"tracker_anaout_%d.root" % jobtag)
             
-            # vertexout
-            inputlist_f = open(os.path.join(inputlistdir,"vertex_out_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % vertexout_input.replace("90-days-archive",""))
-            inputlist_f.close()
-
             # vertexana
             inputlist_f = open(os.path.join(inputlistdir,"vertex_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
             inputlist_f.write("%s" % vertexana_input.replace("90-days-archive",""))
@@ -199,17 +185,6 @@ class numu_ll_reco(ds_project_base):
 
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
-            
-            run_data = run_data.replace("AAA",str(self._ismc_v))
-            run_data = run_data.replace("FFF",str(self._ismc_ts))
-
-            run_data = run_data.replace("DDD","\\\"\\\"")
-
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._precut_txt,workdir))
-            self.info(".... %d %s"%(stat,out))
-            precut_txt = os.path.join(workdir,os.path.basename(self._precut_txt))
-            run_data = run_data.replace("EEE",precut_txt.replace("90-days-archive",""))
-
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
@@ -219,7 +194,7 @@ class numu_ll_reco(ds_project_base):
             
             sub_data = ""
             with open(sub_script,"r") as f: sub_data = f.read()
-            sub_data=sub_data.replace("AAA","numu_ll_reco_%s" % str(jobtag))
+            sub_data=sub_data.replace("AAA","likelihood_reco_%s" % str(jobtag))
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
@@ -250,8 +225,9 @@ class numu_ll_reco(ds_project_base):
                     submissionid = lsubmit.split("=")[-1]
                     submissionok = True
                 else:
-                    #SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
-                    SSH_PREFIX = "ssh %s@xfer.cluster.tufts.edu \"%s\""
+                    #SSH_PREFIX = "ssh %s@xfer.cluster.tufts.edu \"%s\""
+
+                    SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
                     SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
 
                     name = ""
@@ -307,7 +283,7 @@ class numu_ll_reco(ds_project_base):
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep ll_")
+        psinfo = os.popen( "squeue | grep likelihood_")
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -327,7 +303,7 @@ class numu_ll_reco(ds_project_base):
         query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of numu_ll_reco jobs in running state: %d"%(len(results)))
+        self.info("Number of likelihood_reco jobs in running state: %d"%(len(results)))
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -357,7 +333,7 @@ class numu_ll_reco(ds_project_base):
 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of numu_ll_reco jobs in finished state: %d"%(len(results)))
+        self.info("Number of likelihood_reco jobs in finished state: %d"%(len(results)))
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -367,8 +343,7 @@ class numu_ll_reco(ds_project_base):
                                                           self._out_runtag,self._file_format,
                                                           self._input_dir1,self._out_dir)
             # link
-            #st_pkl1 = os.path.join(outdbdir,"vertexout_filter_%d.root" % jobtag)
-            st_pkl1 = os.path.join(outdbdir,"vertexout_filter_nue_ana_tree_%d.root" % jobtag)
+            st_pkl1 = os.path.join(outdbdir,"FinalVertexVariables_%d.root" % jobtag)
             #print st_pkl1
             success = os.path.exists(st_pkl1)
 
@@ -430,7 +405,7 @@ class numu_ll_reco(ds_project_base):
 # A unit test section
 if __name__ == '__main__':
 
-    test_obj = numu_ll_reco(sys.argv[1])
+    test_obj = likelihood_reco(sys.argv[1])
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
