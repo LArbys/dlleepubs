@@ -43,7 +43,7 @@ class vertex_reco(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         #self._nruns = int(resource['NRUNS'])
-        self._nruns = int(10)
+        self._nruns = int(1000)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir        = str(resource['STAGE1DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
@@ -55,7 +55,7 @@ class vertex_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(300)
+        self._max_jobs         = int(3000)
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
 
         if self._usenames == 1:
@@ -66,6 +66,7 @@ class vertex_reco(ds_project_base):
                            "lyates01",
                            "ahourl01",
                            "adiaz09"]
+
 
     def query_queue(self):
         """ data about slurm queue pertaining to vertex_reco jobs"""
@@ -149,7 +150,7 @@ class vertex_reco(ds_project_base):
             ssnetinput += ".root"
 
             inputlist_f = open(os.path.join(inputlistdir,"inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % ssnetinput)
+            inputlist_f.write("%s" % ssnetinput.replace("90-days-archive",""))
             inputlist_f.close()
 
             # runlist
@@ -194,9 +195,10 @@ class vertex_reco(ds_project_base):
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
-            sub_data=sub_data.replace("EEE",workdir)
+            sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
             sub_data=sub_data.replace("FFF",outdbdir)
             sub_data=sub_data.replace("GGG",os.path.basename(run_script))
+            sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
@@ -220,6 +222,7 @@ class vertex_reco(ds_project_base):
                     submissionok = True
                 else:
                     SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
+                    #SSH_PREFIX = "ssh %s@xfer.cluster.tufts.edu \"%s\""
                     SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
                     
                     name = ""
@@ -380,7 +383,8 @@ class vertex_reco(ds_project_base):
             run     = int(x[0])
             subrun  = int(x[1])
             workdir = os.path.join(self._grid_workdir,"vertex",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
-            os.system("rm -rf %s"%(workdir))
+            #os.system("rm -rf %s"%(workdir))
+            os.system("/cluster/kappa/90-days-archive/wongjiradlab/bin/grm %s"%(workdir))            
             # reset the status
             data = ''
             status = ds_status( project = self._project,

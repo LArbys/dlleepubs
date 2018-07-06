@@ -32,8 +32,8 @@ if __name__ == '__main__':
     squeue = exec_system(SS)
     squeue = squeue[1:]
 
-    names   = ["Tagger     ","SSNet      ","Vertex     ","TrackShower","Likelihood ","InterTool  " ]
-    stages  = ["tagger_","ssnet_","vertex_","stp_","ll_","inter_"]
+    names   = ["Tagger     ","SSNet      ","Vertex     ","Tracker    ","InterTool  ","Nue       " ]
+    stages  = ["tagger_","ssnet_","vertex_","tracker_","inter_","nue_"]
     running = [0,0,0,0,0,0]
     queued  = [0,0,0,0,0,0]
     

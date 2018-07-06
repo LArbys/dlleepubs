@@ -8,7 +8,7 @@ BASE_PATH = os.path.dirname(BASE_PATH)
 sys.path.insert(0,BASE_PATH)
 from downstream_utils import exec_system, cmd
 
-IMAGE = "/cluster/kappa/90-days-archive/wongjiradlab/vgenty/vertex/vertex_01262018_p00/image/singularity-dllee-unified-01262018_revert.img"
+IMAGE = "/cluster/kappa/90-days-archive/wongjiradlab/vgenty/vertex/vertex_04092018_p00/image/singularity-dllee-unified-04092018_revert.img"
 DBDIR = "/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/db"
 
 def main(argv):
@@ -28,9 +28,10 @@ def main(argv):
     TAG     = str(sys.argv[2])
     TARGET  = str(sys.argv[3])
 
-    SS  = "srun -p interactive singularity exec %s bash -c "
+    #SS  = "srun -p interactive singularity exec %s bash -c "
     SS  = "singularity exec %s bash -c " 
-    SS += "\"source /usr/local/bin/thisroot.sh; hadd %s.root %s\""
+    SS += "\"source /usr/local/bin/thisroot.sh; hadd -k -f root/%s.root %s\""
+    #SS = "hadd -k -f root/%s.root %s"
     
     DATADIR = os.path.join(DBDIR,PROJECT,"stage2",TAG)
     print "Searching... %s" % DATADIR
@@ -49,8 +50,9 @@ def main(argv):
     tmp.close()
     print fd,path
     SS = SS % (IMAGE,PROJECT + "_" + TAG + "_" + TARGET,"@%s" % path)
+    #SS = SS % (PROJECT + "_" + TAG + "_" + TARGET,"@%s" % path)
     cmd(SS,True)
-    os.remove(path)
+    #os.remove(path)
     return
 
 if __name__ == '__main__':

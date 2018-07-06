@@ -47,7 +47,7 @@ class inter_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(200)
+        self._nruns = int(5e3)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -59,12 +59,12 @@ class inter_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
-        self._stp_runtag       = str(resource['STP_RUNTAG'])
-        self._ll_runtag        = str(resource['LL_RUNTAG'])
+        self._trk_runtag       = str(resource['TRK_RUNTAG'])
+        self._shr_runtag       = str(resource['SHR_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
         self._script           = str(resource['SCRIPT'])
         self._valid_prefix     = str(resource['VALID_PREFIX'])
-        self._max_jobs         = int(500)
+        self._max_jobs         = int(1e5)
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
@@ -162,43 +162,22 @@ class inter_reco(ds_project_base):
             opreco_input   += ".root"
 
             vertexout_input = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
-            shower_input    = os.path.join(inputdbdir2,"shower_reco_out_%d.root" % jobtag)
-            tracker_input   = os.path.join(inputdbdir2,"tracker_reco_%d.root" % jobtag)
             inter_input     = os.path.join(inputdbdir2,"intermediate_file_%d.root" % jobtag)
-            
+
             # ssnet
             inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % ssnet_input)
+            inputlist_f.write("%s" % ssnet_input.replace("90-days-archive",""))
             inputlist_f.close()
 
             # opreco
             inputlist_f = open(os.path.join(inputlistdir,"opreco_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % opreco_input)
+            inputlist_f.write("%s" % opreco_input.replace("90-days-archive",""))
             inputlist_f.close()
             
             # vertex
             inputlist_f = open(os.path.join(inputlistdir,"vertex_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % vertexout_input)
+            inputlist_f.write("%s" % vertexout_input.replace("90-days-archive",""))
             inputlist_f.close()
-
-            # shower
-            inputlist_f = open(os.path.join(inputlistdir,"shower_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % shower_input)
-            inputlist_f.close()
-
-            # tracker
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % tracker_input)
-            inputlist_f.close()
-
-            # inter
-            inputlist_f = open(os.path.join(inputlistdir,"inter_inputlist_%05d.txt"% int(jobtag)),"w+")
-            if os.path.exists(inter_input) == True:
-                inputlist_f.write("%s" % inter_input)
-            else:
-                inputlist_f.write("\"\"")
-            inputlist_f.close()
-
 
             # runlist
             self.info("Filling runlist with jobtag=%s" % str(jobtag))
@@ -239,14 +218,17 @@ class inter_reco(ds_project_base):
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
-            sub_data=sub_data.replace("EEE",workdir)
+            sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
             sub_data=sub_data.replace("FFF",outdbdir)
             sub_data=sub_data.replace("GGG",os.path.basename(run_script))
+            sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
 
             submissionok = False
+
+            self.info("...submitting...")
 
             if True: # use this bool to turn off for testing
 
@@ -266,7 +248,8 @@ class inter_reco(ds_project_base):
                     submissionid = lsubmit.split("=")[-1]
                     submissionok = True
                 else:
-                    SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
+                    #SSH_PREFIX = "ssh %s@xfer.cluster.tufts.edu \"%s\""
+                    SSH_PREFIX = "ssh %s@fastx-dev.cluster.tufts.edu \"%s\""
                     SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
 
                     name = ""
@@ -429,7 +412,8 @@ class inter_reco(ds_project_base):
             subrun  = int(x[1])
             workdir = os.path.join(self._grid_workdir,"inter",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             self.info("deleting... %s" % workdir)
-            os.system("rm -rf %s"%(workdir))
+            #os.system("rm -rf %s"%(workdir))
+            os.system("/cluster/kappa/90-days-archive/wongjiradlab/bin/grm %s"%(workdir))
             # reset the status
             data = ''
             status = ds_status( project = self._project,
