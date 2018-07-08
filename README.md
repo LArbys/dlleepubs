@@ -30,3 +30,9 @@ The chain is run for every `RUN:SUBRUN` entry.
 * `vertex`: use ssnet and track intersections to find candidate neutrino vertices
 * `trackshower`: for every vertex perform 3D reconstruction of tracks and showers coming from the vertex
 * `likelihood`: given reconstructed quantities around vertices, calculate likelihood values used for selection
+
+## Other folders
+
+* `utils`: utility scripts such as one for extracting a list of files from the DB for a given stage and meeting certain status requirements (usually that it was processed successfully)
+* `monitor`: dumps the status of the projects for each dataset. This project runs regularly on the nudot machien to produce the monitor page found [here](http://nudot.lns.mit.edu/taritree/dlleepubsummary.html).
+* `cfg`: configuration files for the various pubs projects. there is a configuration for every dataset.
