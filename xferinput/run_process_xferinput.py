@@ -108,6 +108,8 @@ class xfer_input(ds_project_base):
                 outfile[f] =  dbdir + "/" + self._outfile_format%(f,run,subrun)
                 #print infile[f] +" " + outfile[f]
                 SS = "rsync -avL --progress %s %s" % ( infile[f], outfile[f] )
+                if f == "mcinfo" and infile["mcinfo"] == infile["reco2d"]:
+                    SS = "ln -s %s %s"  % ( outfile["reco2d"], outfile[f] )
                 self.info(SS)
                 cmd = SS
                 #print cmd

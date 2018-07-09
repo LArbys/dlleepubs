@@ -3,7 +3,7 @@
 supera_folder=$1
 larlite_folder=$2
 
-container=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/dllee_unified/singularity-dllee-unified-taggerv2alpha-20171121.img
+container=/cluster/tufts/wongjiradlab/larbys/images/dllee_unified/singularity-dllee-unified-taggerv2alpha-20171121.img
 
 module load singularity
 workdir=$PUB_TOP_DIR/dlleepubs/runtable
