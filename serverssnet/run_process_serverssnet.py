@@ -154,7 +154,7 @@ class ssnet(ds_project_base):
 #SBATCH --output=%s/log_ssnetclient_%d_%d.txt
 #SBATCH --ntasks=1
 #SBATCH --time=2:00:00
-#SBATCH --mem-per-cpu=2000
+#SBATCH --mem-per-cpu=2560
 
 # CONTAINER
 CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
@@ -379,9 +379,9 @@ if __name__ == '__main__':
         test_obj = ssnet()
 
     jobslaunched = False
-    jobslaunched = test_obj.process_newruns()
+    #jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        test_obj.error_handle()
+        #test_obj.error_handle()
 
 
