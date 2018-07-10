@@ -1,10 +1,11 @@
+#!/bin/env python
 ## @namespace dlleepubs.dlleepubsutils
 #  @ingroup dummy_dstream
 #  @brief Defines a project dlleepubsutils
 #  @author twongjirad
 
 # python include
-import time, os, shutil, commands
+import time, os, shutil, commands, argparse
 # pub_dbi package include
 from pub_dbi import DBException
 # dstream class include
@@ -84,31 +85,37 @@ if __name__ == '__main__':
 
     import sys
 
+    parser = argparse.ArgumentParser( description="dump project rse and files.\n  returns \"RUN SUBRUN EVENT FILE1 FILE2 ...\" provided some criteria" )
+    parser.add_argument( "runtable", type=str, 
+                         help="runtable from which the projects derive, e.g. 'mcc8v6_extbnb'. see http://nudot.lns.mit.edu/taritree/dlleepubsummary.html for list." )
+    parser.add_argument( "project",  type=str, help="project name for which we check status to make our selection, e.g. 'tagger','ssnet','vertex'" )
+    parser.add_argument( "status",   type=int, help="status of project. typical values: {0:unprocessed, 4:OK, 10:error}. (exception 'xferinput' where OK=3)" )
+    parser.add_argument( "-f", "--files",    default="__all__", nargs='+', type=str, help="file names to dump out paths for. e.g. supera, opreco, reco2d, mcinfo" )
+
+    args = parser.parse_args( sys.argv )
+
     # run table: the stem name for a whole chain of projects. 
     #            ex. mcc8v6_bnb5e19, a project would be ssnet_mcc8v6_bnb5e19
     # status: status of files for a given stage to check
     # endpath: stage to check status of files
     # filetypes: list of file types to return, e.g. supera, opreco, reco2d (stage1 only at the moment)
 
-    runtable  = sys.argv[1]
-    status    = int(sys.argv[2])
-    endpath   = sys.argv[3]
-    filetypes = sys.argv[4:]
-
     test_obj = dlleepubsutils("X")
-    rundict = test_obj.fetch_completed_entries( runtable, endpath=endpath, endstatus=status )
+    rundict = test_obj.fetch_completed_entries( args.runtable, endpath=args.project, endstatus=args.status )
 
     rslist = rundict.keys()
     rslist.sort()
 
-    #out = open(outfile,'w')
-    
     for rs in rslist:
         print "%d %d"%(rs[0],rs[1]),
-        for filetype in filetypes:
-            print rundict[rs][filetype],
+        if args.files=="__all__":
+            for filetype,path in rundict[rs].items():
+                print rundict[rs][filetype],
+        else:
+            for filetype in args.files:
+                print rundict[rs][filetype],
         print
     
-    #out.close()
+
 
 

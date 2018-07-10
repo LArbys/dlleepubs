@@ -424,7 +424,7 @@ class trackerreco(ds_project_base):
             workdir = os.path.join(self._grid_workdir,"inter",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             self.info("deleting... %s" % workdir)
             #os.system("rm -rf %s"%(workdir))
-            os.system("/cluster/kappa/90-days-archive/wongjiradlab/bin/grm %s"%(workdir))
+            os.system("/cluster/kappa/wongjiradlab/bin/grm %s"%(workdir))
             # reset the status
             data = ''
             status = ds_status( project = self._project,
