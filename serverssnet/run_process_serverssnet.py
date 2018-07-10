@@ -13,7 +13,7 @@ from dstream import ds_project_base
 from dstream import ds_status
 
 PUBDIR = os.environ["PUB_TOP_DIR"]
-PUBSSNETDIR = PUBDIR+"/dlleepubs/ssnet"
+PUBSSNETDIR = PUBDIR+"/dlleepubs/serverssnet"
 
 ## @class ssnet
 #  @brief A dummy nu bin file xfer project
@@ -186,9 +186,9 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
             submitout.close()
             ijob += 1
 
-            if True:
-                # for debug. skip submission and changing of status in DB
-                continue
+            # for debug. skip submission and changing of status in DB
+            #if True:
+            #    continue
 
             submissionok = False
             psubmit = os.popen("sbatch %s/submit.sh"%(workdir))
@@ -202,8 +202,7 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
 
             # Create a status object to be logged to DB (if necessary)
             if submissionok:
-                qinfo[submitnode] += 1
-                self.info("Submitted job for (%d,%d) to %s. Num Jobs on node: %d"%(run,subrun,submitnode,qinfo[submitnode]))
+                self.info("Submitted job for (%d,%d)."%(run,subrun))
                 data = "jobid:"+submissionid
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
@@ -236,7 +235,7 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep ssnet" )
+        psinfo = os.popen( "squeue | grep ssnetcli" )
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -280,7 +279,7 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
         # if bad, then status 1, seq 0
         # check running jobs
 
-        query =  "select t1.run,t1.subrun,supera,opreco"
+        query =  "select t1.run,t1.subrun,supera"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
         query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit %d"%(self._nruns)
         self._api._cursor.execute(query)
@@ -290,7 +289,7 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
             run    = int(x[0])
             subrun = int(x[1])
             supera = x[2]
-            opreco = x[3]
+            supera_ic = supera.replace("/90-days-archive","")
 
             # form output file names
             runmod100 = run%100
@@ -298,11 +297,12 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
             subrunmod100 = subrun%100
             subrundiv100 = subrun/100
             dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
-            ssnetout   = dbdir + "/" + self._outfile_format%("ssnetserverout-larcv",run,subrun)
+            ssnetout     = dbdir + "/" + self._outfile_format%("ssnetserverout-larcv",run,subrun)
+            ssnetout_ic  = ssnetout.replace("/90-days-archive","")
             jobtag       = 10000*run + subrun
             workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)            
 
-            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBSSNETDIR,ssnetout,supera,PUBSSNETDIR.replace("/cluster/tufts","/cluster/kappa/90-days-archive")))
+            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBSSNETDIR,ssnetout_ic,supera_ic,PUBSSNETDIR.replace("/cluster/tufts","/cluster/kappa")))
             lcheck = pcheck.readlines()
             good = False
             try:
@@ -330,7 +330,7 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
                                     subrun  = int(x[1]),
                                     seq     = 0,
                                     status  = 10 )                
-
+            # enter status
             self.log_status(status)
 
 
@@ -379,9 +379,9 @@ if __name__ == '__main__':
         test_obj = ssnet()
 
     jobslaunched = False
-    jobslaunched = test_obj.process_newruns()
-    #if not jobslaunched:
-    #    test_obj.validate()
-    #    test_obj.error_handle()
+    #jobslaunched = test_obj.process_newruns()
+    if not jobslaunched:
+        test_obj.validate()
+        test_obj.error_handle()
 
 

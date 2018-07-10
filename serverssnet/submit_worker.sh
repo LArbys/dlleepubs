@@ -2,13 +2,12 @@
 #
 #SBATCH --job-name=ssn_workers
 #SBATCH --output=ssn_workers.log
-#SBATCH --ntasks=4
-#SBATCH --mem-per-cpu=4000
-#SBATCH --time=1:00:00
-#SBATCH --cpus-per-task=2
+#SBATCH --mem-per-cpu=2000
+#SBATCH --time=3-0:00:00
+#SBATCH --cpus-per-task=1
 #SBATCH --partition gpu
 #SBATCH --nodelist=pgpu03
-#SBATCH --array=0-1
+#SBATCH --array=0-16
 
 CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
 #SSS_BASEDIR=/usr/local/ssnetserver

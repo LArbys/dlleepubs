@@ -4,7 +4,7 @@
 #SBATCH --output=ssn_server.log
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=8000
-#SBATCH --time=1:00:00
+#SBATCH --time=3-0:00:00
 #SBATCH --cpus-per-task=3
 #SBATCH --partition gpu
 #SBATCH --nodelist=pgpu03
