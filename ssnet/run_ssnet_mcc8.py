@@ -80,3 +80,4 @@ for f in outlist:
     os.remove(f)
 print >>statusfile,"SUCCESS"
 sys.exit(0)
+x

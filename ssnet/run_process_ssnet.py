@@ -54,13 +54,12 @@ class ssnet(ds_project_base):
         self._filetable      = resource['FILETABLE']        
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._container      = resource['CONTAINER']
-        self._container_alphaomega = "/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-dllee-ssnet/singularity-dllee-ssnet-nvidia375.20.img"
+        self._container_alphaomega = resource['CONTAINER_ALPHAOMEGA']
         self._max_jobs       = 14+14+2+2+40
         self._pgpu_node_limit = 14
-        #self._pgpu03_node_limit = 7*5
-        self._pgpu03_node_limit = 40 # start with small test, if works, remove and uncomment above, then change last 3 in _max_jobs to 35
+        self._pgpu03_node_limit = 40
         self._ao_node_limit   = 2
-
+        
     def query_queue(self):
         """ data about slurm queue pertaining to ssnet jobs"""
         # PGPU01 jobs
@@ -119,13 +118,9 @@ class ssnet(ds_project_base):
         if nremaining>self._nruns:
             nremaining = self._nruns
 
-
         # get queue status
         qinfo = self.query_queue()
         #print qinfo
-
-        # do we have room on the cards?
-        
 
         # Fetch runs from DB and process for # runs specified for this instance.
         query =  "select t1.run,t1.subrun,supera"
@@ -164,14 +159,21 @@ class ssnet(ds_project_base):
             ssnetout = dbdir + "/" + self._outfile_format%("ssnetout-larcv",run,subrun)
             taggerin = dbdir + "/" + self._outfile_format%("taggerout-larcv",run,subrun)
 
+            # define corresponding variables for inside the container
+            dbdir_ic = dbdir.replace('90-days-archive', '')
+            workdir_ic = workdir.replace('90-days-archive', '')
+            ssnetout_ic = ssnetout.replace('90-days-archive', '')
+            supera_ic = x[2].replace('90-days-archive', '')
+            taggerin_ic = taggerin.replace('90-days-archive', '')
+
             # prepare workdir
             inputlistdir = workdir + "/inputlists"
             os.system("mkdir -p %s"%(inputlistdir))
             self.info("prepared workdir for (%d,%d) at %s"%(run,subrun,workdir))
 
             inputlist   = open('%s/inputlist_%09d.txt'%(inputlistdir,jobtag),'w')
-            print >> inputlist,x[2]
-            print >> inputlist,taggerin
+            print >> inputlist,supera_ic
+            print >> inputlist,taggerin_ic
             inputlist.close()
 
             rerunlist   = open('%s/rerunlist.txt'%(workdir),'w')
@@ -229,7 +231,7 @@ export PATH=/usr/local/nvidia:${PATH}
 export LD_LIBRARY_PATH=/usr/local/nvidia:${LD_LIBRARY_PATH}
 srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
 """
-            submit = submitscript%(jobtag,workdir,run,subrun,workdir,container,ssnetout,workdir,managescript,ijob*20)
+            submit = submitscript%(jobtag,workdir,run,subrun,workdir_ic,container,ssnetout_ic,workdir,managescript,ijob*20)
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
@@ -274,8 +276,6 @@ srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
                 self.log_status( status )
                 jobslaunched = True
 
-            # Break from loop if counter became 0
-            #if not ctr: break
         if jobslaunched:
             return True
         else:
@@ -289,7 +289,7 @@ srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
 	    self.error('Cannot connect to DB! Aborting...')
 	    return
 
-        # If resource info is not yet read-in, read in.
+        # If resource info is not yet read-in, read in
         if self._nruns is None:
             self.get_resource()
 
@@ -360,7 +360,15 @@ srun python %s/%s ${CONTAINER} ${WORKDIR} ${SSNET_OUTFILENAME} %d
             jobtag       = 10000*run + subrun
             workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)            
 
-            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBSSNETDIR,ssnetout,supera,PUBSSNETDIR.replace("/cluster/tufts","/cluster/kappa/90-days-archive")))
+            # corresponding directories for inside the container
+            pubssnetdir_ic = PUBSSNETDIR.replace('/cluster/tufts/','/cluster/kappa/')
+            dbdir_ic = dbdir.replace('90-days-archive','')
+            ssnetout_ic = ssnetout.replace('90-days-archive','')
+            workdir_ic = workdir.replace('90-days-archive','')
+            supera_ic = supera.replace('90-days-archive','')
+            ssnetout_ic = ssnetout.replace('90-days-archive','')
+
+            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBSSNETDIR,ssnetout_ic,supera_ic,pubssnetdir_ic))
             lcheck = pcheck.readlines()
             good = False
             try:
@@ -441,5 +449,3 @@ if __name__ == '__main__':
     if not jobslaunched:
         test_obj.validate()
         test_obj.error_handle()
-
-
