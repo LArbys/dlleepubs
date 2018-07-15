@@ -52,12 +52,11 @@ class ssnet(ds_project_base):
         self._outfile_format = resource['OUTFILE_FORMAT']
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._container      = resource['CONTAINER']
-        self._endofbroker_buffer_secs = float(resource['ENDOFBROKERLIFEBUFFER_SECS'])
 
         #self._nruns    = int(resource['NRUNS'])
         #self._max_jobs = int(resource['MAXJOBS'])
         self._nruns = 10
-        self._max_jobs = 50
+        self._max_jobs = 60
 
         self._pgpu03_max_nworkers  = 6*3 #18
         self._pgpu01_max_nworkers  = 2*3 # 6
@@ -82,19 +81,6 @@ class ssnet(ds_project_base):
         # If resource info is not yet read-in, read in.
         if self._nruns is None:
             self.get_resource()
-
-        # check how much time until the server will shut down
-        f = open("%s/ssnetserver_broker_start.txt"%(PUBSSNETDIR),'r')
-        server_tstamp = f.readlines()[0]
-        self.info("Server start time: "+server_tstamp.strip())
-        server_start = time.strptime( server_tstamp.strip(), "%a, %d %b %Y %H:%M:%S +0000" )
-        secs_running = (time.mktime(time.localtime())-time.mktime(server_start))
-        server_maxtime = 3*(24*3600) # 3 days
-        secs_remaining = server_maxtime - secs_running
-        self.info("Server time remaining: %.2f (secs) %.2f hours"%(secs_remaining,secs_remaining/3600))
-        if secs_remaining < self._endofbroker_buffer_secs:
-            self.info("We are within the end time of the server (%d). Do not launch jobs to prevent clients talking to nothing. Relaunch the server+workers!!"%(self._endofbroker_buffer_secs))
-            return False
 
         # check if we're running the max number of jobs currently
         query = "select run,subrun from %s where status=2 order by run,subrun asc" %( self._project )
@@ -157,6 +143,11 @@ class ssnet(ds_project_base):
             os.system("mkdir -p %s"%(workdir))
             os.system("chmod -R g+rw %s"%(workdir))
             self.info("prepared workdir for (%d,%d) at %s"%(run,subrun,workdir))
+
+
+            # copy files to the working directory
+            #os.system("cp %s/choose_gpu.py %s/"%(PUBSSNETDIR,workdir))             # gpu utility
+            # to do
 
             # make submission script
             submitscript="""#!/bin/sh
@@ -379,6 +370,33 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
                                 data    = data,
                                 status  = 1 )
             self.log_status(status)
+
+    ## @brief access DB and retrieves new runs and process
+    def process_newruns(self):
+
+        # Attempt to connect DB. If failure, abort
+        if not self.connect():
+	    self.error('Cannot connect to DB! Aborting...')
+	    return
+
+        # If resource info is not yet read-in, read in.
+        if self._nruns is None:
+            self.get_resource()
+
+        # Fetch runs from DB and process for # runs specified for this instance.
+        query =  "select t1.run,t1.subrun,supera"
+        query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project, self._filetable)
+        query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
+        query += " where t1.status=1 and t3.status=4 order by run, subrun desc"
+        #print query
+
+        self._api._cursor.execute(query)
+        results = self._api._cursor.fetchall()
+        ijob=0
+        for x in results:
+            #print x[0]
+            pass
+
 
 # A unit test section
 if __name__ == '__main__':
