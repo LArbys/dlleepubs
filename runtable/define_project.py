@@ -35,7 +35,7 @@ def insert( runtable, dbconn, logger, ds, entryline ):
     else:
         larcvtruth = ""
         larcvtruthsam = ""
-
+    
     if "backtracker" in entryline:
         mcinfo = data[5].split(":")[-1]
         mcinfosam = os.path.basename(mcinfo)
@@ -43,7 +43,8 @@ def insert( runtable, dbconn, logger, ds, entryline ):
     else:
         mcinfo = ""
         mcinfosam = ""
-    
+
+
     ts     = (datetime.now()+timedelta(seconds= 0)).strftime('%Y-%m-%d %H:%M:%S')
     te     = (datetime.now()+timedelta(seconds=60)).strftime('%Y-%m-%d %H:%M:%S')
     
@@ -110,3 +111,4 @@ for l in f.readlines():
     insert( runtable, dbconn, logger, ds, l )
 
 f.close()
+

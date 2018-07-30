@@ -171,14 +171,13 @@ if __name__=="__main__":
     for rse in rselist:
         fdict = filedict[rse]
         print rse,fdict
-        if ("supera" not in fdict or "opreco" not in fdict or "reco2d" not in fdict) or ("supera" not in fdict or "opreco" not in fdict or "backtracker" not in fdict):
+        #if "supera" not in fdict or "opreco" not in fdict or "reco2d" not in fdict:
+        if "supera" not in fdict or "opreco" not in fdict or "backtracker" not in fdict:
             print rse," not complete"
             print >> g,fdict
             continue
-        if "reco2d" in fdict:
-            print >> f,rse[0],'\t',rse[1],'\t',rse[2],'\t',"supera:"+fdict["supera"],'\t',"opreco:"+fdict["opreco"],'\t',"reco2d:"+fdict["reco2d"],
-        elif "backtracker" in fdict:
-            print >> f,rse[0],'\t',rse[1],'\t',rse[2],'\t',"supera:"+fdict["supera"],'\t',"opreco:"+fdict["opreco"],'\t',"backtracker:"+fdict["backtracker"],
+        #print >> f,rse[0],'\t',rse[1],'\t',rse[2],'\t',"supera:"+fdict["supera"],'\t',"opreco:"+fdict["opreco"],'\t',"reco2d:"+fdict["reco2d"],
+        print >> f,rse[0],'\t',rse[1],'\t',rse[2],'\t',"supera:"+fdict["supera"],'\t',"opreco:"+fdict["opreco"],'\t',"backtracker:"+fdict["backtracker"],
         if "mcinfo" in fdict:
             print >> f,'\t',"mcinfo:"+fdict["mcinfo"],
         if "larcvtruth" in fdict:
