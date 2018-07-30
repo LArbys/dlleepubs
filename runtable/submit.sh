@@ -20,8 +20,12 @@
 #LARLITEDIR=/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/mcc8.4/extunb/p00/larlite
 #SUPERATRUTH=
 
-SUPERADIR=/cluster/kappa/90-days-archive/wongjiradlab/vgenty/michel_data/larcv
-LARLITEDIR=/cluster/kappa/90-days-archive/wongjiradlab/vgenty/michel_data/larlite
+#SUPERADIR=/cluster/kappa/90-days-archive/wongjiradlab/vgenty/michel_data/larcv
+#LARLITEDIR=/cluster/kappa/90-days-archive/wongjiradlab/vgenty/michel_data/larlite
+#SUPERATRUTH=
+
+SUPERADIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/overlay_full/larcv_p01
+LARLITEDIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/overlay_full/larlite_p01
 SUPERATRUTH=
 
 srun ./run_singularity_extract_runlist.sh $SUPERADIR $LARLITEDIR $SUPERATRUTH
