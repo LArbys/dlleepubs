@@ -7,10 +7,10 @@ from dstream import ds_status
 sys.path.insert(0,os.path.join(os.environ["PUB_TOP_DIR"],"dlleepubs"))
 from utils.downstream_utils import *
 
-class likelihood_reco(ds_project_base):
+class trackerreco(ds_project_base):
 
     # Define project name as class attribute
-    _project = 'likelihood_reco'
+    _project = 'trackerreco'
 
     ## @brief default ctor can take # runs to process for this instance
     def __init__(self,project_name):
@@ -19,7 +19,7 @@ class likelihood_reco(ds_project_base):
             self._project = project_name
 
         # Call base class ctor
-        super(likelihood_reco,self).__init__()
+        super(trackerreco,self).__init__()
 
         self._nruns           = None
         self._parent_project  = ""
@@ -33,18 +33,20 @@ class likelihood_reco(ds_project_base):
         self._run_script      = ""
         self._sub_script      = ""
         self._vtx_runtag      = ""
-        self._trk_runtag      = ""
+        self._st_runtag       = ""
         self._out_runtag      = ""
+        self._script          = ""
         self._max_jobs        = None
         self._usenames        = ""
-        self._names = []
+        self._ismc            = ""
+        self._names           = []
 
     ## @brief method to retrieve the project resource information if not yet done
     def get_resource(self):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(5000)
+        self._nruns = int(5e3)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -55,10 +57,12 @@ class likelihood_reco(ds_project_base):
         self._container        = str(resource['CONTAINER'])
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
+        self._trkcfg           = os.path.join(CFG_DIR,"tracker",str(resource['TRKCFG']))
+        self._trkanacfg        = os.path.join(CFG_DIR,"truth",str(resource['TRKANACFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
-        self._trk_runtag       = str(resource['TRK_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = int(10000)
+        self._max_jobs         = int(1e5)
+        self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
         if self._usenames == 1:
@@ -69,11 +73,10 @@ class likelihood_reco(ds_project_base):
                            "lyates01",
                            "ahourl01"]
                            # "adiaz09"]
-
-
+            
     def query_queue(self):
-        """ data about slurm queue pertaining to likelihood_reco jobs"""
-        psqueue = commands.getoutput("squeue | grep likeliho")
+        """ data about slurm queue pertaining to trackerreco jobs"""
+        psqueue = commands.getoutput("squeue | grep tracker_")
         lsqueue = psqueue.split('\n')
 
         info = {"numjobs":0,"jobids":[]}
@@ -104,7 +107,7 @@ class likelihood_reco(ds_project_base):
         jobslaunched = False
         
         if nremaining<=0:
-            self.info("Already running (%d) max number of likelihood_reco jobs (%d)" % (len(results),self._max_jobs) )
+            self.info("Already running (%d) max number of trackerreco jobs (%d)" % (len(results),self._max_jobs) )
             return
 
         if nremaining>self._nruns:
@@ -112,7 +115,6 @@ class likelihood_reco(ds_project_base):
 
         # get queue status
         qinfo = self.query_queue()
-        #print qinfo
         
         #
         # ...this is not the pubs way, pray it's right...
@@ -131,51 +133,73 @@ class likelihood_reco(ds_project_base):
             # run id
             run    = int(x[0])
             subrun = int(x[1])
-            _     , inputdbdir0, _ = cast_run_subrun(run,subrun,              "","", self._input_dir1,""   )
-            _     , _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"","",self._out_dir)
-            _     , _, inputdbdir2 = cast_run_subrun(run,subrun,self._trk_runtag,"","",self._out_dir)
-            jobtag, _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"","",self._out_dir)
-            
+            _     , inputdbdir0,           _ = cast_run_subrun(run,subrun,              "","", self._input_dir1,""           )
+            _     ,           _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"",               "",self._out_dir)
+            jobtag,           _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"",               "",self._out_dir)
             
             # prepare work dir
             self.info("Making work directory")
-            workdir      = os.path.join(self._grid_workdir,"ll",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir      = os.path.join(self._grid_workdir,"tracker",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             inputlistdir = os.path.join(workdir,"inputlists")
             stat,out = commands.getstatusoutput("mkdir -p %s"%(inputlistdir))
             self.info("...made workdir for (%d,%d) at %s"%(run,subrun,workdir))
             self.info("..... %d %s"%(stat,out))
-            
+
             #
             # prepare input lists
             #
+            supera_input  = os.path.join(inputdbdir0,self._file_format%("supera",run,subrun))
+            supera_input += ".root"
+
+            ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserverout-larcv",run,subrun))
+            ssnet_input  += ".root"
+
+            tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
+            tagger_input += ".root"
+
+            reco2dinput = os.path.join(inputdbdir0,self._file_format%("reco2d",run,subrun))
+            reco2dinput+= ".root"
+
             mcinfoinput = os.path.join(inputdbdir0,self._file_format%("mcinfo",run,subrun))
             mcinfoinput+= ".root"
 
-            vertexana_input      = os.path.join(inputdbdir1,"vertexana_%d.root" % jobtag)
-            trackerana_input     = os.path.join(inputdbdir2,"tracker_anaout_%d.root" % jobtag)
-            tracker_truth_input  = os.path.join(inputdbdir2,"track_truth_match_%d.root" % jobtag)            
+            vertexout_input = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
 
-            # vertexana
-            inputlist_f = open(os.path.join(inputlistdir,"vertex_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(vertexana_input).replace("90-days-archive",""))
+            # supera
+            inputlist_f = open(os.path.join(inputlistdir,"supera_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(supera_input).replace("90-days-archive",""))
+            inputlist_f.close()
+ 
+            # ssnet
+            inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(ssnet_input).replace("90-days-archive",""))
             inputlist_f.close()
 
-            # tracker ana
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(trackerana_input).replace("90-days-archive",""))
-            inputlist_f.close()
-
-            # tracker truth
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_truth_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(tracker_truth_input).replace("90-days-archive",""))
+            # tagger
+            inputlist_f = open(os.path.join(inputlistdir,"tagger_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(tagger_input).replace("90-days-archive",""))
             inputlist_f.close()
             
-            # mcinfo
+            # vertex
+            inputlist_f = open(os.path.join(inputlistdir,"vertex_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(vertexout_input).replace("90-days-archive",""))
+            inputlist_f.close()
+
+            # larlite
+            inputlist_f = open(os.path.join(inputlistdir,"reco2d_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(reco2dinput).replace("90-days-archive",""))
+            inputlist_f.close();
+
             inputlist_f = open(os.path.join(inputlistdir,"mcinfo_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(mcinfoinput).replace("90-days-archive",""))
-            inputlist_f.close()
+            if self._ismc == 1:
+                inputlist_f.write("%s" % os.path.realpath(mcinfoinput).replace("90-days-archive",""))
+            elif self._ismc == 0:
+                inputlist_f.write("INVALID")
+            else:
+                raise Exception("self._ismc is invalid")
 
-            
+            inputlist_f.close()
+                              
             # runlist
             self.info("Filling runlist with jobtag=%s" % str(jobtag))
             runlist_f = open(os.path.join(workdir,"runlist.txt"),"w+")
@@ -191,25 +215,32 @@ class likelihood_reco(ds_project_base):
             # make output dir
             self.info("Making output directory @dir=%s" % str(outdbdir))
             stat,out = commands.getstatusoutput("mkdir -p %s" % (outdbdir))
-            self.info("..... %d %s"%(stat,out))
 
             # copy reco job template over
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._run_script,workdir))
-            self.info("..... %d %s"%(stat,out))
+            stat,out = commands.getstatusoutput("scp %s %s" % (self._run_script,workdir))
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
+
+            # copy configs over
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._trkcfg,workdir))
+            trkcfg = os.path.join(workdir,os.path.basename(self._trkcfg))
+
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._trkanacfg,workdir))
+            trkanacfg = os.path.join(workdir,os.path.basename(self._trkanacfg))
 
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
+            run_data = run_data.replace("YYY",os.path.basename(trkcfg))
+            run_data = run_data.replace("ZZZ",os.path.basename(trkanacfg))
+            run_data = run_data.replace("BBB",str(self._ismc))
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._sub_script,workdir))
-            self.info("..... %d %s"%(stat,out))
+            stat,out = commands.getstatusoutput("scp %s %s" % (self._sub_script,workdir))
             sub_script = os.path.join(workdir,os.path.basename(self._sub_script))
             
             sub_data = ""
             with open(sub_script,"r") as f: sub_data = f.read()
-            sub_data=sub_data.replace("AAA","likelihood_reco_%s" % str(jobtag))
+            sub_data=sub_data.replace("AAA","tracker_reco_%s" % str(jobtag))
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
@@ -222,6 +253,8 @@ class likelihood_reco(ds_project_base):
             ijob += 1
 
             submissionok = False
+
+            self.info("...submitting...")
 
             if True: # use this bool to turn off for testing
 
@@ -242,8 +275,7 @@ class likelihood_reco(ds_project_base):
                     submissionok = True
                 else:
                     #SSH_PREFIX = "ssh %s@xfer.cluster.tufts.edu \"%s\""
-
-                    SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
+                    SSH_PREFIX = "ssh %s@fastx-dev.cluster.tufts.edu \"%s\""
                     SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
 
                     name = ""
@@ -299,7 +331,7 @@ class likelihood_reco(ds_project_base):
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep likeliho")
+        psinfo = os.popen( "squeue | grep tracker_")
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -319,7 +351,7 @@ class likelihood_reco(ds_project_base):
         query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of likelihood_reco jobs in running state: %d"%(len(results)))
+        self.info("Number of trackerreco jobs in running state: %d"%(len(results)))
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -349,7 +381,7 @@ class likelihood_reco(ds_project_base):
 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of likelihood_reco jobs in finished state: %d"%(len(results)))
+        self.info("Number of trackerreco jobs in finished state: %d"%(len(results)))
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -359,9 +391,8 @@ class likelihood_reco(ds_project_base):
                                                           self._out_runtag,self._file_format,
                                                           self._input_dir1,self._out_dir)
             # link
-            st_pkl1 = os.path.join(outdbdir,"dllee_vertex_%d.root" % jobtag)
-            #print st_pkl1
-            success = os.path.exists(st_pkl1)
+            ana = os.path.join(outdbdir,"track_dir_ana_%d.root" % jobtag)
+            success = os.path.exists(ana)
 
             if success == True:
                 self.info("status of job for (%d,%d) is good"%(run,subrun))
@@ -395,6 +426,7 @@ class likelihood_reco(ds_project_base):
             self.get_resource()
 
         # check running jobs
+        self.info("got nruns=%s" % self._nruns)
         query = "select run,subrun from %s where status=10 order by run,subrun asc limit %d" %( self._project, self._nruns*10 )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
@@ -404,10 +436,13 @@ class likelihood_reco(ds_project_base):
             # we clean out the workdir
             run     = int(x[0])
             subrun  = int(x[1])
-            workdir = os.path.join(self._grid_workdir,"ll",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
-            SS = "rm -rf %s"%(workdir)
+            workdir = os.path.join(self._grid_workdir,"tracker",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            self.info("deleting... %s" % workdir)
+            SS="rm -rf %s" % workdir
             self.info(SS)
             os.system(SS)
+
+            # reset the status
             data = ''
             status = ds_status( project = self._project,
                                 run     = int(x[0]),
@@ -420,9 +455,14 @@ class likelihood_reco(ds_project_base):
 # A unit test section
 if __name__ == '__main__':
 
-    test_obj = likelihood_reco(sys.argv[1])
+    print "...Get TestObj..."
+    test_obj = trackerreco(sys.argv[1])
     jobslaunched = False
+    print "...Process..."
     jobslaunched = test_obj.process_newruns()
+    print "...Validate..."
     test_obj.validate()
+    print "...Error handle..."
+    #print "error handle off for now"
     test_obj.error_handle()
 

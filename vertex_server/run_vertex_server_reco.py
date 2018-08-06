@@ -126,9 +126,6 @@ class vertex_reco(ds_project_base):
         results = self._api._cursor.fetchall()
         ijob = 0
 
-        print query
-        print results
-
         for x in results:
 
             # run id
