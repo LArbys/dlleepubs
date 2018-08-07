@@ -158,7 +158,7 @@ class ssnet(ds_project_base):
             os.system("chmod -R g+rw %s"%(workdir))
             self.info("prepared workdir for (%d,%d) at %s"%(run,subrun,workdir))
 
-            # make submission script
+            # make submission script for client
             submitscript="""#!/bin/sh
 #
 #SBATCH --job-name=ssnetclient_%d
@@ -168,10 +168,10 @@ class ssnet(ds_project_base):
 #SBATCH --mem-per-cpu=2560
 
 # CONTAINER
-CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
+CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0_update080617.img
 
 # LOCATION OF SSNETSERVER CODE (IN CONTAINER)
-SSS_BASEDIR=/cluster/kappa/wongjiradlab/twongj01/ssnetserver # for debug
+SSS_BASEDIR=/cluster/kappa/wongjiradlab/larbys/ssnetserver # for debug
 #SSS_BASEDIR=/usr/local/ssnetserver # eventually use frozen code in container
 
 # WORKING DIRECTORY
@@ -191,6 +191,7 @@ mkdir -p ${WORKDIR}
 module load singularity
 singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1client_pubs.sh ${SSS_BASEDIR} ${WORKDIR_IN_CONTAINER} ${BROKER} ${PORT} ${SSNET_OUTPUTPATH} ${TAGGER_INPUTPATH} ${TREENAME}"
 """
+
             submit = submitscript%(jobtag,workdir,run,subrun,workdir,workdir_ic,taggerin_ic,ssnetout_ic)
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
@@ -391,7 +392,7 @@ if __name__ == '__main__':
         test_obj = ssnet()
 
     jobslaunched = False
-    jobslaunched = test_obj.process_newruns()
+    #jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
         test_obj.error_handle()
