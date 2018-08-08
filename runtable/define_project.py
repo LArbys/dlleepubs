@@ -31,7 +31,7 @@ def insert( runtable, dbconn, logger, ds, entryline ):
 
     if "larcvtruth" in entryline:
         larcvtruth = data[6].split(":")[-1]
-        larcvtruthsam = os.path.basename(larcvtruthsam)
+        larcvtruthsam = os.path.basename(larcvtruth)
     else:
         larcvtruth = ""
         larcvtruthsam = ""
@@ -40,10 +40,6 @@ def insert( runtable, dbconn, logger, ds, entryline ):
         mcinfo = data[5].split(":")[-1]
         mcinfosam = os.path.basename(mcinfo)
         ismc = True
-    else:
-        mcinfo = ""
-        mcinfosam = ""
-
 
     ts     = (datetime.now()+timedelta(seconds= 0)).strftime('%Y-%m-%d %H:%M:%S')
     te     = (datetime.now()+timedelta(seconds=60)).strftime('%Y-%m-%d %H:%M:%S')

@@ -45,7 +45,7 @@ class xfer_input(ds_project_base):
         # Get process configuration
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(resource['NRUNS'])
+        self._nruns          = int(resource['NRUNS'])
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
         self._filetable      = resource['FILETABLE']
@@ -68,9 +68,9 @@ class xfer_input(ds_project_base):
 
         # check if database has new metadata (complete and numevents)
         self._api._cursor.execute("select count(column_name) from information_schema.columns where table_name='%s' and column_name='complete'"%(self._filetable))
-        hascomplete = self._api._cursor.fetchall()[0]
+        hascomplete = self._api._cursor.fetchall()[0][0]
         self._api._cursor.execute("select count(column_name) from information_schema.columns where table_name='%s' and column_name='numevents'"%(self._filetable))
-        hasnumevents = self._api._cursor.fetchall()[0]
+        hasnumevents = self._api._cursor.fetchall()[0][0]
 
         # Get Runs with status=1 or 2 (0=notrun,1=copied,2=error,3=done)
         if hascomplete==0 or hasnumevents==0:
@@ -105,6 +105,7 @@ class xfer_input(ds_project_base):
             for f in flist:
                 dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
                 os.system("mkdir -p %s"%(dbdir))
+                infile[f] = infile[f].replace('/cluster/kappa/','/cluster/tufts/')
                 outfile[f] =  dbdir + "/" + self._outfile_format%(f,run,subrun)
                 #print infile[f] +" " + outfile[f]
                 SS = "rsync -avL --progress %s %s" % ( infile[f], outfile[f] )
@@ -183,8 +184,8 @@ class xfer_input(ds_project_base):
                     status = 2
                 fstatus[f] = status
 
-            #print "Status of xfer: ",status
-            #print fstatus
+            print "Status of xfer: ",status
+            print fstatus
 
             # Create a status object to be logged to DB (if necessary)
             dbstatus = ds_status( project = self._project,
@@ -273,7 +274,7 @@ if __name__ == '__main__':
         
     test_obj.process_newruns()
 
-    #test_obj.error_handle()
+    test_obj.error_handle()
 
     test_obj.validate()
 

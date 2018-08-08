@@ -113,8 +113,12 @@ def catalog_larlite_files( filefolders, filedict ):
             if ".root" not in f or "larlite" not in f:
                 continue
             fpath = folder + "/" + f.strip()
-            ftype = f.split("_")[1]
-    
+            #ftype = f.split("_")[1]
+            if "opreco" in f: ftype = "opreco"
+            elif "reco2d" in f: ftype = "reco2d"
+            elif "mcinfo" in f: ftype = "mcinfo"
+            elif "backtracker" in f: ftype = "backtracker"
+
             try:
                 rse = extract_rse_larlite( fpath )
             except:
@@ -148,6 +152,7 @@ if __name__=="__main__":
     larlite_folder.append( sys.argv[2] )
     if len(sys.argv)==4:
         larcvtruth_folder.append( sys.argv[3] )
+        print "found larcv_mctruth folder"
 
 
     larcviocfg="""Name: IOManager Verbosity: 02 IOMode: 0 ReadOnlyDataType: ["wire"]  ReadOnlyDataName: [0]"""
@@ -171,13 +176,15 @@ if __name__=="__main__":
     for rse in rselist:
         fdict = filedict[rse]
         print rse,fdict
-        #if "supera" not in fdict or "opreco" not in fdict or "reco2d" not in fdict:
-        if "supera" not in fdict or "opreco" not in fdict or "backtracker" not in fdict:
+        if ("supera" not in fdict or "opreco" not in fdict or "reco2d" not in fdict) and ("supera" not in fdict or "opreco" not in fdict or "backtracker" not in fdict):
             print rse," not complete"
             print >> g,fdict
             continue
-        #print >> f,rse[0],'\t',rse[1],'\t',rse[2],'\t',"supera:"+fdict["supera"],'\t',"opreco:"+fdict["opreco"],'\t',"reco2d:"+fdict["reco2d"],
-        print >> f,rse[0],'\t',rse[1],'\t',rse[2],'\t',"supera:"+fdict["supera"],'\t',"opreco:"+fdict["opreco"],'\t',"backtracker:"+fdict["backtracker"],
+        print >> f,rse[0],'\t',rse[1],'\t',rse[2],'\t',"supera:"+fdict["supera"],'\t',"opreco:"+fdict["opreco"],
+        if "reco2d" in fdict:
+            print >> f,'\t',"reco2d:"+fdict["reco2d"],
+        if "backtracker" in fdict:
+            print >> f,'\t',"backtracker:"+fdict["backtracker"],
         if "mcinfo" in fdict:
             print >> f,'\t',"mcinfo:"+fdict["mcinfo"],
         if "larcvtruth" in fdict:
@@ -187,6 +194,3 @@ if __name__=="__main__":
 
     f.close()
     g.close()
-            
-
-
