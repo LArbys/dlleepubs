@@ -146,8 +146,8 @@ class tagger(ds_project_base):
 #SBATCH --job-name=tagger_%d
 #SBATCH --output=%s/log_tagger_%d_%d.txt
 #SBATCH --ntasks=1
-#SBATCH --time=480:00
-#SBATCH --mem-per-cpu=4000
+#SBATCH --time=1920:00
+#SBATCH --mem-per-cpu=8000
 
 WORKDIR=%s
 CONTAINER=%s

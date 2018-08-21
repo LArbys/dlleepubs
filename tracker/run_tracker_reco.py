@@ -73,7 +73,7 @@ class trackerreco(ds_project_base):
                            "lyates01",
                            "ahourl01",
                            "adiaz09"]
-
+            
     def query_queue(self):
         """ data about slurm queue pertaining to trackerreco jobs"""
         psqueue = commands.getoutput("squeue | grep tracker_")
@@ -421,10 +421,12 @@ class trackerreco(ds_project_base):
             # we clean out the workdir
             run     = int(x[0])
             subrun  = int(x[1])
-            workdir = os.path.join(self._grid_workdir,"inter",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir = os.path.join(self._grid_workdir,"tracker",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             self.info("deleting... %s" % workdir)
-            #os.system("rm -rf %s"%(workdir))
-            os.system("/cluster/kappa/wongjiradlab/bin/grm %s"%(workdir))
+            #SS="/cluster/kappa/90-days-archive/wongjiradlab/bin/grm %s"%(workdir)
+            SS="rm -rf %s" % workdir
+            self.info(SS)
+            os.system(SS)
             # reset the status
             data = ''
             status = ds_status( project = self._project,

@@ -477,7 +477,7 @@ class nueid_reco(ds_project_base):
             # we clean out the workdir
             run     = int(x[0])
             subrun  = int(x[1])
-            workdir = os.path.join(self._grid_workdir,"inter",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir = os.path.join(self._grid_workdir,"nue",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             self.info("deleting... %s" % workdir)
             SS="rm -rf %s"%(workdir)
             self.info(SS)

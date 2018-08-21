@@ -32,10 +32,10 @@ if __name__ == '__main__':
     squeue = exec_system(SS)
     squeue = squeue[1:]
 
-    names   = ["Tagger     ","SSNet      ","Vertex     ","Tracker    ","InterTool  ","Nue       " ]
-    stages  = ["tagger_","ssnet_","vertex_","tracker_","inter_","nue_"]
-    running = [0,0,0,0,0,0]
-    queued  = [0,0,0,0,0,0]
+    names   = ["Tagger     ","SSNet      ","Vertex     ","Tracker    ","InterTool  ","Nue       ","Likelihood "]
+    stages  = ["tagger_","ssnet_","vertex_","tracker_","inter_","nue_","likeliho"]
+    running = [0,0,0,0,0,0,0]
+    queued  = [0,0,0,0,0,0,0]
     
     for job in squeue:
         for ix,stage in enumerate(stages):

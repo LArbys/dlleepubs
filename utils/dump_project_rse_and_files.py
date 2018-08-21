@@ -92,7 +92,7 @@ if __name__ == '__main__':
     parser.add_argument( "status",   type=int, help="status of project. typical values: {0:unprocessed, 4:OK, 10:error}. (exception 'xferinput' where OK=3)" )
     parser.add_argument( "-f", "--files",    default="__all__", nargs='+', type=str, help="file names to dump out paths for. e.g. supera, opreco, reco2d, mcinfo" )
 
-    args = parser.parse_args( sys.argv )
+    args = parser.parse_args( sys.argv[1:] )
 
     # run table: the stem name for a whole chain of projects. 
     #            ex. mcc8v6_bnb5e19, a project would be ssnet_mcc8v6_bnb5e19

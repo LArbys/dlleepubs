@@ -383,8 +383,9 @@ class vertex_reco(ds_project_base):
             run     = int(x[0])
             subrun  = int(x[1])
             workdir = os.path.join(self._grid_workdir,"vertex",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
-            #os.system("rm -rf %s"%(workdir))
-            os.system("/cluster/kappa/90-days-archive/wongjiradlab/bin/grm %s"%(workdir))            
+            SS="rm -rf %s" % workdir
+            self.info(SS)
+            os.system(SS)
             # reset the status
             data = ''
             status = ds_status( project = self._project,
