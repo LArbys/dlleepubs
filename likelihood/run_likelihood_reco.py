@@ -133,10 +133,7 @@ class likelihood_reco(ds_project_base):
         #
         query =  "select t1.run,t1.subrun"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project, self._filetable)
-        # query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
-        #query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
         query += " where t1.status=1 order by run, subrun desc limit %d" % (nremaining) 
-
         
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()

@@ -196,18 +196,18 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_anatagge
 
             psubmit = os.popen("sbatch %s/submit.sh"%(workdir))
             lsubmit = psubmit.readlines()
-            submissionok = False
-            submissionid = ""
+            submissionerr = False
+            submissionid  = ""
             for l in lsubmit:
                 l = l.strip()
                 if "Submitted batch job" in l:
                     submissionid = l.split()[-1].strip()
-                    submissionok = True
                     self.info("Launched ana-tagger job for (%d,%d)"%(run,subrun))
-                    jobslaunched = True
+                if "error" in l:
+                    submissionerr = True
 
             # Create a status object to be logged to DB (if necessary)
-            if submissionok:
+            if not submissionerr and submissionid!="":
                 data = "jobid:"+submissionid
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
@@ -236,7 +236,8 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_anatagge
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep %s | grep tagger"%(os.environ["USER"]) )
+        #psinfo = os.popen( "squeue | grep %s | grep tagger"%(os.environ["USER"]) )
+        psinfo = os.popen( "squeue | grep anatagge" )
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -264,16 +265,18 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_anatagge
                 self.info( "(%d,%d) not parsed"%(run,subrun)+": "+x[-1] )
                 continue
             self.info( "(%d,%d) run ID %d"%(run,subrun,runid))
+
             if runid not in runningjobs:
-                print "(%d,%d) no longer running. updating status,seq to 3,0" % (run,subrun)
+                print "(%d,%d) no longer running (jobid=%d). updating status,seq to 3,0" % (run,subrun,runid)
                 data = ""
-                status = ds_status( project = self._project,
-                                    run     = int(x[0]),
-                                    subrun  = int(x[1]),
-                                    seq     = 0,
-                                    data    = data,
-                                    status  = 3 )
-                self.log_status( status )
+                if True:
+                    status = ds_status( project = self._project,
+                                        run     = int(x[0]),
+                                        subrun  = int(x[1]),
+                                        seq     = 0,
+                                        data    = data,
+                                        status  = 3 )
+                    self.log_status( status )
 
         # check finished jobs
         # if good, then status 4, seq 0
@@ -391,7 +394,7 @@ if __name__ == '__main__':
         test_obj = anatagger()
      
     jobslaunched = False
-    jobslaunched = test_obj.process_newruns()
+    #jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
         test_obj.error_handle()
