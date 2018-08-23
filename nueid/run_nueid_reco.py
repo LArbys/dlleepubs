@@ -33,10 +33,13 @@ class nueid_reco(ds_project_base):
         self._run_script      = ""
         self._sub_script      = ""
         self._vtx_runtag      = ""
-        self._st_runtag       = ""
         self._out_runtag      = ""
         self._script          = ""
-        self._valid_prefix    = ""
+        self._nueidcfg        = ""
+        self._shrcfg          = ""
+        self._shranacfg       = ""
+        self._pidcfg          = ""
+        self._flashcfg        = ""
         self._max_jobs        = None
         self._usenames        = ""
         self._ismc            = ""
@@ -58,14 +61,13 @@ class nueid_reco(ds_project_base):
         self._container        = str(resource['CONTAINER'])
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
-        self._trkanacfg        = os.path.join(CFG_DIR,"truth",str(resource['TRKANACFG']))
+        self._nueidcfg         = os.path.join(CFG_DIR,"nueid",str(reosurce['NUECFG']))
         self._shrcfg           = os.path.join(CFG_DIR,"shower",str(resource['SHRCFG']))
         self._shranacfg        = os.path.join(CFG_DIR,"truth",str(resource['SHRANACFG']))
         self._pidcfg           = os.path.join(CFG_DIR,"network",str(resource['PIDCFG']))
+        self._flashcfg         = os.path.join(CFG_DIR,"flash",str(resource['FLASHCFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
-        self._trk_runtag       = str(resource['TRK_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._valid_prefix     = str(resource['VALID_PREFIX'])
         self._max_jobs         = int(1e5)
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
@@ -128,9 +130,12 @@ class nueid_reco(ds_project_base):
         # Fetch runs from DB and process for # runs specified for this instance.
         query =  "select t1.run,t1.subrun"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project, self._filetable)
-        # query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
-        #query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
-        query += " where t1.status=1 order by run, subrun desc limit %d" % (nremaining) 
+
+        query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
+        query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
+
+        # query += " where t1.status=1 order by run, subrun desc limit %d" % (nremaining) 
+
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         ijob = 0
@@ -169,13 +174,6 @@ class nueid_reco(ds_project_base):
             mcinfoinput += ".root"
 
             vertexout_input = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
-            pklinput        = os.path.join(inputdbdir1,"ana_comb_df_%d.pkl" % jobtag)            
-
-            tracker_out_input    = os.path.join(inputdbdir2,"tracker_reco_%d.root" % jobtag)
-            tracker_ana1_input   = os.path.join(inputdbdir2,"tracker_anaout_%d.root" % jobtag)
-            tracker_ana2_input   = os.path.join(inputdbdir2,"trackqualsingle_%d.root" % jobtag)
-            tracker_dir_input    = os.path.join(inputdbdir2,"track_dir_ana_%d.root" % jobtag)
-            tracker_truth_input  = os.path.join(inputdbdir2,"track_truth_match_%d.root" % jobtag)
 
             # ssnet
             inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")
@@ -207,32 +205,6 @@ class nueid_reco(ds_project_base):
                 raise Exception("self._ismc is invalid")
             inputlist_f.close()
 
-            # pkl
-            inputlist_f = open(os.path.join(inputlistdir,"pkl_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % pklinput.replace("90-days-archive",""))
-            inputlist_f.close()
-
-            # tracker shits
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_out_inputlist_%05d.txt" % int(jobtag)),"w+")
-            inputlist_f.write("%s" % tracker_out_input.replace("90-days-archive",""))
-            inputlist_f.close()
-
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_ana1_inputlist_%05d.txt" % int(jobtag)),"w+")
-            inputlist_f.write("%s" % tracker_ana1_input.replace("90-days-archive",""))
-            inputlist_f.close()
-
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_ana2_inputlist_%05d.txt" % int(jobtag)),"w+")
-            inputlist_f.write("%s" % tracker_ana2_input.replace("90-days-archive",""))
-            inputlist_f.close()
-
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_dir_inputlist_%05d.txt" % int(jobtag)),"w+")
-            inputlist_f.write("%s" % tracker_dir_input.replace("90-days-archive",""))
-            inputlist_f.close()
-
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_truth_inputlist_%05d.txt" % int(jobtag)),"w+")
-            inputlist_f.write("%s" % tracker_truth_input.replace("90-days-archive",""))
-            inputlist_f.close()
-                               
             # runlist
             self.info("Filling runlist with jobtag=%s" % str(jobtag))
             runlist_f = open(os.path.join(workdir,"runlist.txt"),"w+")
@@ -253,24 +225,28 @@ class nueid_reco(ds_project_base):
             stat,out = commands.getstatusoutput("scp %s %s" % (self._run_script,workdir))
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
 
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._nueidcfg,workdir))
+            nueidcfg = os.path.join(workdir,os.path.basename(self._nueidcfg))
+
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._shrcfg,workdir))
             shrcfg = os.path.join(workdir,os.path.basename(self._shrcfg))
 
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._shranacfg,workdir))
             shranacfg = os.path.join(workdir,os.path.basename(self._shranacfg))
 
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._trkanacfg,workdir))
-            trkanacfg = os.path.join(workdir,os.path.basename(self._trkanacfg))
-
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._pidcfg,workdir))
             pidcfg = os.path.join(workdir,os.path.basename(self._pidcfg))
 
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._flashcfg,workdir))
+            flashcfg = os.path.join(workdir,os.path.basename(self._flashcfg))
+
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
-            run_data = run_data.replace("ZZZ",os.path.basename(trkanacfg))
             run_data = run_data.replace("KKK",os.path.basename(shrcfg))
             run_data = run_data.replace("RRR",os.path.basename(shranacfg))
             run_data = run_data.replace("EEE",os.path.basename(pidcfg))
+            run_data = run_data.replace("FFF",os.path.basename(nueidcfg))
+            run_data = run_data.replace("GGG",os.path.basename(flashcfg))
             run_data = run_data.replace("BBB",str(self._ismc))
             with open(run_script,"w") as f: f.write(run_data)
 
@@ -432,7 +408,7 @@ class nueid_reco(ds_project_base):
                                                           self._out_runtag,self._file_format,
                                                           self._input_dir1,self._out_dir)
             # link
-            ana = os.path.join(outdbdir,"rst_comb_df_%d.pkl" % jobtag)
+            ana = os.path.join(outdbdir,"nueid_comb_df_%d.pkl" % jobtag)
             success = os.path.exists(ana)
 
             if success == True:
