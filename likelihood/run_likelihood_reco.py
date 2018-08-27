@@ -22,7 +22,8 @@ class likelihood_reco(ds_project_base):
         super(likelihood_reco,self).__init__()
 
         self._nruns           = None
-        self._parent_project  = ""
+        self._parent_project1 = ""
+        self._parent_project2 = ""
         self._input_dir1      = ""
         self._input_dir2      = ""
         self._file_format     = ""
@@ -34,6 +35,7 @@ class likelihood_reco(ds_project_base):
         self._sub_script      = ""
         self._vtx_runtag      = ""
         self._trk_runtag      = ""
+        self._nue_runtag      = ""
         self._out_runtag      = ""
         self._precut_cfg      = ""
         self._is_mc           = ""
@@ -47,7 +49,8 @@ class likelihood_reco(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         self._nruns = int(5000)
-        self._parent_project   = str(resource['SOURCE_PROJECT'])
+        self._parent_project1  = str(resource['SOURCE_PROJECT1'])
+        self._parent_project2  = str(resource['SOURCE_PROJECT2'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
@@ -59,6 +62,7 @@ class likelihood_reco(ds_project_base):
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._trk_runtag       = str(resource['TRK_RUNTAG'])
+        self._nue_runtag       = str(resource['NUE_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
         self._precut_cfg       = str(resource['PRECUT_CFG'])
         self._is_mc            = int(str(resource['IS_MC']))
@@ -123,18 +127,14 @@ class likelihood_reco(ds_project_base):
         #
 
         # Fetch runs from DB and process for # runs specified for this instance.
-        # query =  "select t1.run,t1.subrun"
-        # query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project, self._filetable)
-        # query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
-        # query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
+        query  = "select t1.run,t1.subrun"
+        query += " from %s t1" % (self._project)
+        query += " join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._filetable)
+        query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project1)
+        query += " join %s t4 on (t1.run=t4.run and t1.subrun=t4.subrun)" % (self._parent_project2)
+        query += " where t1.status=1 and t3.status=4 and t4.status=4"
+        query += " order by run, subrun desc limit %d" % (nremaining) 
 
-        #
-        # from nueid
-        #
-        query =  "select t1.run,t1.subrun"
-        query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project, self._filetable)
-        query += " where t1.status=1 order by run, subrun desc limit %d" % (nremaining) 
-        
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         ijob = 0
@@ -146,16 +146,15 @@ class likelihood_reco(ds_project_base):
             _     , inputdbdir0, _ = cast_run_subrun(run,subrun,              "","", self._input_dir1,""   )
             _     , _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"","",self._out_dir)
             _     , _, inputdbdir2 = cast_run_subrun(run,subrun,self._trk_runtag,"","",self._out_dir)
+            _     , _, inputdbdir3 = cast_run_subrun(run,subrun,self._nue_runtag,"","",self._out_dir)
             jobtag, _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"","",self._out_dir)
             
             
             # prepare work dir
-            #self.info("Making work directory")
             workdir      = os.path.join(self._grid_workdir,"ll",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             inputlistdir = os.path.join(workdir,"inputlists")
             stat,out = commands.getstatusoutput("mkdir -p %s"%(inputlistdir))
             self.info("...made workdir for (%d,%d) at %s"%(run,subrun,workdir))
-            #self.info("..... %d %s"%(stat,out))
             
             #
             # prepare input lists
@@ -172,9 +171,16 @@ class likelihood_reco(ds_project_base):
             tagger_ll_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larlite",run,subrun))
             tagger_ll_input += ".root"
             
-            vertexana_input      = os.path.join(inputdbdir1,"vertexana_%d.root" % jobtag)
-            trackerana_input     = os.path.join(inputdbdir2,"tracker_anaout_%d.root" % jobtag)
-            tracker_truth_input  = os.path.join(inputdbdir2,"track_truth_match_%d.root" % jobtag)            
+            vertexana_input  = os.path.join(inputdbdir1,"vertexana_%d.root" % jobtag)
+            trackerana_input = os.path.join(inputdbdir2,"tracker_anaout_%d.root" % jobtag)
+            vertexpklinput   = os.path.join(inputdbdir1,"ana_comb_df_%d.pkl" % jobtag)
+            nueidpklinput    = os.path.join(inputdbdir3,"nueid_comb_df_%d.pkl" % jobtag)
+
+            
+            #
+            # write the text files to inputlist folder
+            #
+
 
             # tagger_lcv_input
             inputlist_f = open(os.path.join(inputlistdir,"tagger_lcv_inputlist_%05d.txt"% int(jobtag)),"w+")
@@ -195,11 +201,6 @@ class likelihood_reco(ds_project_base):
             inputlist_f = open(os.path.join(inputlistdir,"tracker_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
             inputlist_f.write("%s" % os.path.realpath(trackerana_input).replace("90-days-archive",""))
             inputlist_f.close()
-
-            # tracker truth
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_truth_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(tracker_truth_input).replace("90-days-archive",""))
-            inputlist_f.close()
             
             # mcinfo
             inputlist_f = open(os.path.join(inputlistdir,"mcinfo_inputlist_%05d.txt"% int(jobtag)),"w+")
@@ -214,14 +215,22 @@ class likelihood_reco(ds_project_base):
             inputlist_f.write("%s" % os.path.realpath(oprecoinput).replace("90-days-archive",""))
             inputlist_f.close()
 
+            # vertex pkl
+            inputlist_f = open(os.path.join(inputlistdir,"vertex_pkl_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(vertexpklinput).replace("90-days-archive",""))
+            inputlist_f.close()
+
+            # nueid pkl
+            inputlist_f = open(os.path.join(inputlistdir,"nueid_pkl_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(nueidpklinput).replace("90-days-archive",""))
+            inputlist_f.close()
+
             # runlist
-            #self.info("Filling runlist with jobtag=%s" % str(jobtag))
             runlist_f = open(os.path.join(workdir,"runlist.txt"),"w+")
             runlist_f.write("%s" % jobtag)
             runlist_f.close()
 
             # rerunlist
-            #self.info("Filling rerunlist with jobtag=%s" % str(jobtag))
             rerunlist_f = open(os.path.join(workdir,"rerunlist.txt"),"w+")
             rerunlist_f.write("%s" % jobtag)
             rerunlist_f.close()
@@ -229,14 +238,14 @@ class likelihood_reco(ds_project_base):
             # make output dir
             self.info("Making output directory @dir=%s" % str(outdbdir))
             stat,out = commands.getstatusoutput("mkdir -p %s" % (outdbdir))
-            #self.info("..... %d %s"%(stat,out))
 
             # copy reco job template over
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._run_script,workdir))
-            #self.info("..... %d %s"%(stat,out))
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
 
             # copy configs over
+            precut_dir = "/cluster/kappa/90-days-archive/wongjiradlab/larbys/pubs/dlleepubs/downstream/Production_Config/cfg/precuts/"
+            self._precut_cfg = os.path.join(precut_dir,self._precut_cfg)
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._precut_cfg,workdir))
             precut_cfg = os.path.join(workdir,os.path.basename(self._precut_cfg))
 
@@ -244,10 +253,9 @@ class likelihood_reco(ds_project_base):
             with open(run_script,"r") as f: run_data = f.read()
             run_data = run_data.replace("YYY",precut_cfg.replace("90-days-archive",""))
             with open(run_script,"w") as f: f.write(run_data)
-
+            
             # copy submission script over
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._sub_script,workdir))
-            #self.info("..... %d %s"%(stat,out))
             sub_script = os.path.join(workdir,os.path.basename(self._sub_script))
             
             sub_data = ""
@@ -265,7 +273,9 @@ class likelihood_reco(ds_project_base):
             ijob += 1
 
             submissionok = False
-
+            
+            sys.exit(1)
+            
             if True: # use this bool to turn off for testing
 
                 interactive = False
@@ -284,8 +294,7 @@ class likelihood_reco(ds_project_base):
                     submissionid = lsubmit.split("=")[-1]
                     submissionok = True
                 else:
-                    #SSH_PREFIX = "ssh %s@xfer.cluster.tufts.edu \"%s\""
-
+                    # SSH_PREFIX = "ssh %s@xfer.cluster.tufts.edu \"%s\""
                     SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
                     SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
 

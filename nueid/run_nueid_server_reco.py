@@ -33,7 +33,6 @@ class nueid_reco(ds_project_base):
         self._run_script      = ""
         self._sub_script      = ""
         self._vtx_runtag      = ""
-        self._st_runtag       = ""
         self._out_runtag      = ""
         self._script          = ""
         self._valid_prefix    = ""
@@ -58,12 +57,12 @@ class nueid_reco(ds_project_base):
         self._container        = str(resource['CONTAINER'])
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
-        self._trkanacfg        = os.path.join(CFG_DIR,"truth",str(resource['TRKANACFG']))
+        self._nueidcfg         = os.path.join(CFG_DIR,"nueid",str(resource['NUEIDCFG']))
         self._shrcfg           = os.path.join(CFG_DIR,"shower",str(resource['SHRCFG']))
         self._shranacfg        = os.path.join(CFG_DIR,"truth",str(resource['SHRANACFG']))
         self._pidcfg           = os.path.join(CFG_DIR,"network",str(resource['PIDCFG']))
+        self._flashcfg         = os.path.join(CFG_DIR,"flash",str(resource['FLASHCFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
-        self._trk_runtag       = str(resource['TRK_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
         self._valid_prefix     = str(resource['VALID_PREFIX'])
         self._max_jobs         = int(1e5)
@@ -128,9 +127,11 @@ class nueid_reco(ds_project_base):
         # Fetch runs from DB and process for # runs specified for this instance.
         query =  "select t1.run,t1.subrun"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project, self._filetable)
-        # query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
-        #query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
-        query += " where t1.status=1 order by run, subrun desc limit %d" % (nremaining) 
+
+        query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
+        query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
+
+        # query += " where t1.status=1 order by run, subrun desc limit %d" % (nremaining) 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         ijob = 0
@@ -141,7 +142,6 @@ class nueid_reco(ds_project_base):
             subrun = int(x[1])
             _     , inputdbdir0,           _ = cast_run_subrun(run,subrun,              "","", self._input_dir1,""           )
             _     ,           _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"",               "",self._out_dir)
-            _     ,           _, inputdbdir2 = cast_run_subrun(run,subrun,self._trk_runtag,"",               "",self._out_dir)
             jobtag,           _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"",               "",self._out_dir)
             
             
@@ -498,13 +498,9 @@ class nueid_reco(ds_project_base):
 # A unit test section
 if __name__ == '__main__':
 
-    print "...Get TestObj..."
     test_obj = nueid_reco(sys.argv[1])
     jobslaunched = False
-    print "...Process..."
     jobslaunched = test_obj.process_newruns()
-    print "...Validate..."
     test_obj.validate()
-    print "...Error handle..."
     test_obj.error_handle()
 

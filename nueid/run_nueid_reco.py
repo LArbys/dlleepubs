@@ -61,7 +61,7 @@ class nueid_reco(ds_project_base):
         self._container        = str(resource['CONTAINER'])
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
-        self._nueidcfg         = os.path.join(CFG_DIR,"nueid",str(reosurce['NUECFG']))
+        self._nueidcfg         = os.path.join(CFG_DIR,"nueid",str(resource['NUEIDCFG']))
         self._shrcfg           = os.path.join(CFG_DIR,"shower",str(resource['SHRCFG']))
         self._shranacfg        = os.path.join(CFG_DIR,"truth",str(resource['SHRANACFG']))
         self._pidcfg           = os.path.join(CFG_DIR,"network",str(resource['PIDCFG']))
@@ -146,10 +146,8 @@ class nueid_reco(ds_project_base):
             subrun = int(x[1])
             _     , inputdbdir0,           _ = cast_run_subrun(run,subrun,              "","", self._input_dir1,""           )
             _     ,           _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"",               "",self._out_dir)
-            _     ,           _, inputdbdir2 = cast_run_subrun(run,subrun,self._trk_runtag,"",               "",self._out_dir)
             jobtag,           _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"",               "",self._out_dir)
-            
-            
+                        
             # prepare work dir
             self.info("Making work directory")
             workdir      = os.path.join(self._grid_workdir,"nue",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
@@ -471,13 +469,9 @@ class nueid_reco(ds_project_base):
 # A unit test section
 if __name__ == '__main__':
 
-    print "...Get TestObj..."
     test_obj = nueid_reco(sys.argv[1])
     jobslaunched = False
-    print "...Process..."
     jobslaunched = test_obj.process_newruns()
-    print "...Validate..."
     test_obj.validate()
-    print "...Error handle..."
     test_obj.error_handle()
-
+    

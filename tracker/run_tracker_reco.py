@@ -376,7 +376,7 @@ class trackerreco(ds_project_base):
                                                           self._out_runtag,self._file_format,
                                                           self._input_dir1,self._out_dir)
             # link
-            ana = os.path.join(outdbdir,"track_dir_ana_%d.root" % jobtag)
+            ana = os.path.join(outdbdir,"track_truth_match_%d.root" % jobtag)
             success = os.path.exists(ana)
 
             if success == True:
@@ -440,13 +440,9 @@ class trackerreco(ds_project_base):
 # A unit test section
 if __name__ == '__main__':
 
-    print "...Get TestObj..."
     test_obj = trackerreco(sys.argv[1])
     jobslaunched = False
-    print "...Process..."
     jobslaunched = test_obj.process_newruns()
-    print "...Validate..."
     test_obj.validate()
-    print "...Error handle..."
     test_obj.error_handle()
 
