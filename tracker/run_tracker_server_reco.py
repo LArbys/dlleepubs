@@ -46,7 +46,7 @@ class trackerreco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(5e3)
+        self._nruns = int(1e3)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -61,7 +61,7 @@ class trackerreco(ds_project_base):
         self._trkanacfg        = os.path.join(CFG_DIR,"truth",str(resource['TRKANACFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = int(1e5)
+        self._max_jobs         = int(2e3)
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
@@ -71,8 +71,8 @@ class trackerreco(ds_project_base):
                            "jmoon02",
                            "ran01",
                            "lyates01",
-                           "ahourl01"]
-                           # "adiaz09"]
+                           "ahourl01",
+                           "adiaz09"]
             
     def query_queue(self):
         """ data about slurm queue pertaining to trackerreco jobs"""
@@ -455,14 +455,9 @@ class trackerreco(ds_project_base):
 # A unit test section
 if __name__ == '__main__':
 
-    print "...Get TestObj..."
     test_obj = trackerreco(sys.argv[1])
     jobslaunched = False
-    print "...Process..."
     jobslaunched = test_obj.process_newruns()
-    print "...Validate..."
     test_obj.validate()
-    print "...Error handle..."
-    #print "error handle off for now"
-    test_obj.error_handle()
+    #test_obj.error_handle()
 

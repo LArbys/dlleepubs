@@ -32,10 +32,14 @@ class nueid_reco(ds_project_base):
         self._container       = ""
         self._run_script      = ""
         self._sub_script      = ""
+        self._nueidcfg        = ""
+        self._shrcfg          = ""
+        self._shranacfg       = ""
+        self._pidcfg          = ""
+        self._flashcfg        = ""
         self._vtx_runtag      = ""
         self._out_runtag      = ""
         self._script          = ""
-        self._valid_prefix    = ""
         self._max_jobs        = None
         self._usenames        = ""
         self._ismc            = ""
@@ -46,7 +50,7 @@ class nueid_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(5e3)
+        self._nruns = int(500)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -58,14 +62,14 @@ class nueid_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._nueidcfg         = os.path.join(CFG_DIR,"nueid",str(resource['NUEIDCFG']))
+        self._michelidcfg      = os.path.join(CFG_DIR,"nueid",str(resource['MICHELIDCFG']))
         self._shrcfg           = os.path.join(CFG_DIR,"shower",str(resource['SHRCFG']))
         self._shranacfg        = os.path.join(CFG_DIR,"truth",str(resource['SHRANACFG']))
         self._pidcfg           = os.path.join(CFG_DIR,"network",str(resource['PIDCFG']))
         self._flashcfg         = os.path.join(CFG_DIR,"flash",str(resource['FLASHCFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._valid_prefix     = str(resource['VALID_PREFIX'])
-        self._max_jobs         = int(1e5)
+        self._max_jobs         = int(1e3)
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
@@ -172,13 +176,6 @@ class nueid_reco(ds_project_base):
             reco2dinput += ".root"
 
             vertexout_input = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
-            pklinput        = os.path.join(inputdbdir1,"ana_comb_df_%d.pkl" % jobtag)            
-
-            tracker_out_input    = os.path.join(inputdbdir2,"tracker_reco_%d.root" % jobtag)
-            tracker_ana1_input   = os.path.join(inputdbdir2,"tracker_anaout_%d.root" % jobtag)
-            tracker_ana2_input   = os.path.join(inputdbdir2,"trackqualsingle_%d.root" % jobtag)
-            tracker_dir_input    = os.path.join(inputdbdir2,"track_dir_ana_%d.root" % jobtag)
-            tracker_truth_input  = os.path.join(inputdbdir2,"track_truth_match_%d.root" % jobtag)
 
             # supera
             inputlist_f = open(os.path.join(inputlistdir,"supera_inputlist_%05d.txt"% int(jobtag)),"w+")
@@ -210,32 +207,6 @@ class nueid_reco(ds_project_base):
             inputlist_f.write("%s" % reco2dinput.replace("90-days-archive",""))
             inputlist_f.close()
 
-            # pkl
-            inputlist_f = open(os.path.join(inputlistdir,"pkl_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % pklinput.replace("90-days-archive",""))
-            inputlist_f.close()
-
-            # tracker shits
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_out_inputlist_%05d.txt" % int(jobtag)),"w+")
-            inputlist_f.write("%s" % tracker_out_input.replace("90-days-archive",""))
-            inputlist_f.close()
-
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_ana1_inputlist_%05d.txt" % int(jobtag)),"w+")
-            inputlist_f.write("%s" % tracker_ana1_input.replace("90-days-archive",""))
-            inputlist_f.close()
-
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_ana2_inputlist_%05d.txt" % int(jobtag)),"w+")
-            inputlist_f.write("%s" % tracker_ana2_input.replace("90-days-archive",""))
-            inputlist_f.close()
-
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_dir_inputlist_%05d.txt" % int(jobtag)),"w+")
-            inputlist_f.write("%s" % tracker_dir_input.replace("90-days-archive",""))
-            inputlist_f.close()
-
-            inputlist_f = open(os.path.join(inputlistdir,"tracker_truth_inputlist_%05d.txt" % int(jobtag)),"w+")
-            inputlist_f.write("%s" % tracker_truth_input.replace("90-days-archive",""))
-            inputlist_f.close()
-                               
             # runlist
             self.info("Filling runlist with jobtag=%s" % str(jobtag))
             runlist_f = open(os.path.join(workdir,"runlist.txt"),"w+")
@@ -256,24 +227,32 @@ class nueid_reco(ds_project_base):
             stat,out = commands.getstatusoutput("scp %s %s" % (self._run_script,workdir))
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
 
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._nueidcfg,workdir))
+            nueidcfg = os.path.join(workdir,os.path.basename(self._nueidcfg))
+
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._michelidcfg,workdir))
+            michelidcfg = os.path.join(workdir,os.path.basename(self._michelidcfg))
+
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._shrcfg,workdir))
             shrcfg = os.path.join(workdir,os.path.basename(self._shrcfg))
 
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._shranacfg,workdir))
             shranacfg = os.path.join(workdir,os.path.basename(self._shranacfg))
 
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._trkanacfg,workdir))
-            trkanacfg = os.path.join(workdir,os.path.basename(self._trkanacfg))
-
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._pidcfg,workdir))
             pidcfg = os.path.join(workdir,os.path.basename(self._pidcfg))
 
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._flashcfg,workdir))
+            flashcfg = os.path.join(workdir,os.path.basename(self._flashcfg))
+
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
-            run_data = run_data.replace("ZZZ",os.path.basename(trkanacfg))
             run_data = run_data.replace("KKK",os.path.basename(shrcfg))
             run_data = run_data.replace("RRR",os.path.basename(shranacfg))
             run_data = run_data.replace("EEE",os.path.basename(pidcfg))
+            run_data = run_data.replace("FFF",os.path.basename(nueidcfg))
+            run_data = run_data.replace("GGG",os.path.basename(flashcfg))
+            run_data = run_data.replace("HHH",os.path.basename(michelidcfg))
             run_data = run_data.replace("BBB",str(self._ismc))
             with open(run_script,"w") as f: f.write(run_data)
 
@@ -435,7 +414,7 @@ class nueid_reco(ds_project_base):
                                                           self._out_runtag,self._file_format,
                                                           self._input_dir1,self._out_dir)
             # link
-            ana = os.path.join(outdbdir,"rst_comb_df_%d.pkl" % jobtag)
+            ana = os.path.join(outdbdir,"nueid_comb_df_%d.pkl" % jobtag)
             success = os.path.exists(ana)
 
             if success == True:
@@ -480,7 +459,7 @@ class nueid_reco(ds_project_base):
             # we clean out the workdir
             run     = int(x[0])
             subrun  = int(x[1])
-            workdir = os.path.join(self._grid_workdir,"inter",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir = os.path.join(self._grid_workdir,"nue",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             self.info("deleting... %s" % workdir)
             SS="rm -rf %s"%(workdir)
             self.info(SS)
@@ -502,5 +481,5 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    test_obj.error_handle()
-
+    # test_obj.error_handle()
+    

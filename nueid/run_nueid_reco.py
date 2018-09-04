@@ -50,7 +50,7 @@ class nueid_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(5e3)
+        self._nruns = int(500)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -62,13 +62,14 @@ class nueid_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._nueidcfg         = os.path.join(CFG_DIR,"nueid",str(resource['NUEIDCFG']))
+        self._michelidcfg      = os.path.join(CFG_DIR,"nueid",str(resource['MICHELIDCFG']))
         self._shrcfg           = os.path.join(CFG_DIR,"shower",str(resource['SHRCFG']))
         self._shranacfg        = os.path.join(CFG_DIR,"truth",str(resource['SHRANACFG']))
         self._pidcfg           = os.path.join(CFG_DIR,"network",str(resource['PIDCFG']))
         self._flashcfg         = os.path.join(CFG_DIR,"flash",str(resource['FLASHCFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = int(1e5)
+        self._max_jobs         = int(1e3)
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
@@ -226,6 +227,9 @@ class nueid_reco(ds_project_base):
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._nueidcfg,workdir))
             nueidcfg = os.path.join(workdir,os.path.basename(self._nueidcfg))
 
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._michelidcfg,workdir))
+            michelidcfg = os.path.join(workdir,os.path.basename(self._michelidcfg))
+
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._shrcfg,workdir))
             shrcfg = os.path.join(workdir,os.path.basename(self._shrcfg))
 
@@ -245,6 +249,7 @@ class nueid_reco(ds_project_base):
             run_data = run_data.replace("EEE",os.path.basename(pidcfg))
             run_data = run_data.replace("FFF",os.path.basename(nueidcfg))
             run_data = run_data.replace("GGG",os.path.basename(flashcfg))
+            run_data = run_data.replace("HHH",os.path.basename(michelidcfg))
             run_data = run_data.replace("BBB",str(self._ismc))
             with open(run_script,"w") as f: f.write(run_data)
 
@@ -473,5 +478,5 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    test_obj.error_handle()
+    # test_obj.error_handle()
     

@@ -147,8 +147,8 @@ class tagger(ds_project_base):
 #SBATCH --job-name=tagger_%d
 #SBATCH --output=%s/log_tagger_%d_%d.txt
 #SBATCH --ntasks=1
-#SBATCH --time=480:00
-#SBATCH --mem-per-cpu=4000
+#SBATCH --time=960:00
+#SBATCH --mem-per-cpu=8000
 
 WORKDIR=%s
 CONTAINER=%s
@@ -368,5 +368,5 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        test_obj.error_handle()
+        #test_obj.error_handle()
         

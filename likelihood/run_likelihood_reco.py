@@ -48,7 +48,7 @@ class likelihood_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(5000)
+        self._nruns = int(500)
         self._parent_project1  = str(resource['SOURCE_PROJECT1'])
         self._parent_project2  = str(resource['SOURCE_PROJECT2'])
         self._input_dir1       = str(resource['STAGE1DIR'])
@@ -60,13 +60,14 @@ class likelihood_reco(ds_project_base):
         self._container        = str(resource['CONTAINER'])
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
+        self._nue_cuts         = str(resource['NUE_CUTS'])
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._trk_runtag       = str(resource['TRK_RUNTAG'])
         self._nue_runtag       = str(resource['NUE_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
         self._precut_cfg       = str(resource['PRECUT_CFG'])
         self._is_mc            = int(str(resource['IS_MC']))
-        self._max_jobs         = int(10000)
+        self._max_jobs         = int(1e3)
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
         if self._usenames == 1:
@@ -249,9 +250,15 @@ class likelihood_reco(ds_project_base):
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._precut_cfg,workdir))
             precut_cfg = os.path.join(workdir,os.path.basename(self._precut_cfg))
 
+            nue_cut_dir = "/cluster/kappa/90-days-archive/wongjiradlab/larbys/pubs/dlleepubs/downstream/Production_Config/cfg/postcuts/"
+            self._nue_cuts = os.path.join(nue_cut_dir,self._nue_cuts)
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._nue_cuts,workdir))
+            nue_cuts = os.path.join(workdir,os.path.basename(self._nue_cuts))
+
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
-            run_data = run_data.replace("YYY",precut_cfg.replace("90-days-archive",""))
+            run_data = run_data.replace("KKK",os.path.basename(nue_cuts))
+            run_data = run_data.replace("RRR",os.path.basename(precut_cfg))
             with open(run_script,"w") as f: f.write(run_data)
             
             # copy submission script over
@@ -274,7 +281,7 @@ class likelihood_reco(ds_project_base):
 
             submissionok = False
             
-            sys.exit(1)
+            # sys.exit(1)
             
             if True: # use this bool to turn off for testing
 
@@ -411,7 +418,7 @@ class likelihood_reco(ds_project_base):
                                                           self._out_runtag,self._file_format,
                                                           self._input_dir1,self._out_dir)
             # link
-            st_pkl1 = os.path.join(outdbdir,"dllee_vertex_%d.root" % jobtag)
+            st_pkl1 = os.path.join(outdbdir,"FinalVertexVariables_%d.root" % jobtag)
             #print st_pkl1
             success = os.path.exists(st_pkl1)
 
@@ -476,5 +483,5 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    test_obj.error_handle()
+    # test_obj.error_handle()
 

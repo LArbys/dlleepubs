@@ -1,4 +1,4 @@
-import os, sys, pwd, commands, time, random, getpass
+0;95;0cimport os, sys, pwd, commands, time, random, getpass
 from pub_dbi import DBException
 from dstream import DSException
 from dstream import ds_project_base
@@ -46,7 +46,7 @@ class trackerreco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(5e3)
+        self._nruns = int(1e3)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -61,7 +61,7 @@ class trackerreco(ds_project_base):
         self._trkanacfg        = os.path.join(CFG_DIR,"truth",str(resource['TRKANACFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = int(1e5)
+        self._max_jobs         = int(2e3)
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
@@ -444,5 +444,5 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    test_obj.error_handle()
+#    test_obj.error_handle()
 
