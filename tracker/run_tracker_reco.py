@@ -1,4 +1,4 @@
-0;95;0cimport os, sys, pwd, commands, time, random, getpass
+import os, sys, pwd, commands, time, random, getpass
 from pub_dbi import DBException
 from dstream import DSException
 from dstream import ds_project_base
@@ -444,5 +444,5 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-#    test_obj.error_handle()
+    test_obj.error_handle()
 

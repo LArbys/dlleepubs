@@ -7,10 +7,10 @@ from dstream import ds_status
 sys.path.insert(0,os.path.join(os.environ["PUB_TOP_DIR"],"dlleepubs"))
 from utils.downstream_utils import *
 
-class vertex_reco(ds_project_base):
+class trackerreco(ds_project_base):
 
     # Define project name as class attribute
-    _project = 'vertex_reco'
+    _project = 'trackerreco'
 
     ## @brief default ctor can take # runs to process for this instance
     def __init__(self,project_name):
@@ -19,44 +19,52 @@ class vertex_reco(ds_project_base):
             self._project = project_name
 
         # Call base class ctor
-        super(vertex_reco,self).__init__()
+        super(trackerreco,self).__init__()
 
-        self._nruns            = None
-        self._parent_project   = ""
-        self._input_dir        = ""
-        self._file_format      = ""
-        self._out_dir          = ""
-        self._filetable        = ""
-        self._grid_workdir     = ""
-        self._container        = ""
-        self._vtxcfg           = ""
-        self._run_script       = ""
-        self._sub_script       = ""
-        self._runtag           = ""
-        self._max_jobs         = None
-        self._usenames         = 0
-        self._names            = []
-        
+        self._nruns           = None
+        self._parent_project  = ""
+        self._input_dir1      = ""
+        self._input_dir2      = ""
+        self._file_format     = ""
+        self._out_dir         = ""
+        self._filetable       = ""
+        self._grid_workdir    = ""
+        self._container       = ""
+        self._run_script      = ""
+        self._sub_script      = ""
+        self._vtx_runtag      = ""
+        self._st_runtag       = ""
+        self._out_runtag      = ""
+        self._script          = ""
+        self._max_jobs        = None
+        self._usenames        = ""
+        self._ismc            = ""
+        self._names           = []
+
     ## @brief method to retrieve the project resource information if not yet done
     def get_resource(self):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(500)
+        self._nruns = int(1e3)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
-        self._input_dir        = str(resource['STAGE1DIR'])
+        self._input_dir1       = str(resource['STAGE1DIR'])
+        self._input_dir2       = str(resource['STAGE2DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
         self._out_dir          = str(resource['OUTDIR'])
         self._filetable        = str(resource['FILETABLE'])    
         self._grid_workdir     = str(resource['GRID_WORKDIR'])
         self._container        = str(resource['CONTAINER'])
-        self._vtxcfg           = os.path.join(CFG_DIR,str(resource['VTXCFG']))
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
-        self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
-        self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = int(1e3)
+        self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job_crb_numi_larger_sample.sh")
+        self._trkcfg           = os.path.join(CFG_DIR,"tracker",str(resource['TRKCFG']))
+        self._trkanacfg        = os.path.join(CFG_DIR,"truth",str(resource['TRKANACFG']))
+        self._vtx_runtag       = str(resource['VTX_RUNTAG'])
+        self._out_runtag       = str(resource['OUT_RUNTAG'])
+        self._max_jobs         = int(2e3)
+        self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
-
+        
         if self._usenames == 1:
             self._names = ["vgenty01",
                            "cbarne06",
@@ -65,11 +73,10 @@ class vertex_reco(ds_project_base):
                            "lyates01",
                            "ahourl01",
                            "adiaz09"]
-
-
+            
     def query_queue(self):
-        """ data about slurm queue pertaining to vertex_reco jobs"""
-        psqueue = commands.getoutput("squeue | grep vertex")
+        """ data about slurm queue pertaining to trackerreco jobs"""
+        psqueue = commands.getoutput("squeue | grep tracker_")
         lsqueue = psqueue.split('\n')
 
         info = {"numjobs":0,"jobids":[]}
@@ -94,15 +101,13 @@ class vertex_reco(ds_project_base):
 
         # check if we're running the max number of jobs currently
         query = "select run,subrun from %s where status=2 order by run,subrun asc" %( self._project )
-
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         nremaining = self._max_jobs - len(results)
-
         jobslaunched = False
         
         if nremaining<=0:
-            self.info("Already running (%d) max number of vertex_reco jobs (%d)" % (len(results),self._max_jobs) )
+            self.info("Already running (%d) max number of trackerreco jobs (%d)" % (len(results),self._max_jobs) )
             return
 
         if nremaining>self._nruns:
@@ -110,7 +115,6 @@ class vertex_reco(ds_project_base):
 
         # get queue status
         qinfo = self.query_queue()
-        #print qinfo
         
         #
         # ...this is not the pubs way, pray it's right...
@@ -124,52 +128,80 @@ class vertex_reco(ds_project_base):
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         ijob = 0
-
         for x in results:
 
             # run id
             run    = int(x[0])
             subrun = int(x[1])
-
-            # job variables
-            jobtag,inputdbdir,outdbdir = cast_run_subrun(run,subrun,
-                                                         self._runtag,self._file_format,
-                                                         self._input_dir,self._out_dir)
+            _     , inputdbdir0,           _ = cast_run_subrun(run,subrun,              "","", self._input_dir1,""           )
+            _     ,           _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"",               "",self._out_dir)
+            jobtag,           _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"",               "",self._out_dir)
             
             # prepare work dir
             self.info("Making work directory")
-            workdir      = os.path.join(self._grid_workdir,"vertex",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            workdir      = os.path.join(self._grid_workdir,"tracker",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             inputlistdir = os.path.join(workdir,"inputlists")
-            cmd("mkdir -p %s"%(inputlistdir))
+            stat,out = commands.getstatusoutput("mkdir -p %s"%(inputlistdir))
             self.info("...made workdir for (%d,%d) at %s"%(run,subrun,workdir))
+            self.info("..... %d %s"%(stat,out))
 
             #
             # prepare input lists
             #
-            
-            superainput  = os.path.join(inputdbdir,self._file_format%("supera",run,subrun))
-            superainput += ".root"
+            supera_input  = os.path.join(inputdbdir0,self._file_format%("supera",run,subrun))
+            supera_input += ".root"
 
-            #ssnetinput  = os.path.join(inputdbdir,self._file_format%("ssnetserverout-larcv",run,subrun))
-            ssnetinput  = os.path.join(inputdbdir,self._file_format%("ssnetserveroutv2-larcv",run,subrun))
-            ssnetinput += ".root"
+            ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserverout-larcv",run,subrun))
+            #ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserveroutv2-larcv",run,subrun))
+            ssnet_input  += ".root"
 
-            #taggerinput  = os.path.join(inputdbdir,self._file_format%("taggerout-larcv",run,subrun))
-            taggerinput  = os.path.join(inputdbdir,self._file_format%("taggeroutv2-larcv",run,subrun))
-            taggerinput += ".root"
+            tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
+            #tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggeroutv2-larcv",run,subrun))
+            tagger_input += ".root"
 
+            reco2dinput = os.path.join(inputdbdir0,self._file_format%("reco2d",run,subrun))
+            reco2dinput+= ".root"
+
+            mcinfoinput = os.path.join(inputdbdir0,self._file_format%("mcinfo",run,subrun))
+            mcinfoinput+= ".root"
+
+            vertexout_input = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
+
+            # supera
             inputlist_f = open(os.path.join(inputlistdir,"supera_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % superainput.replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(supera_input).replace("90-days-archive",""))
             inputlist_f.close()
-
+ 
+            # ssnet
             inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % ssnetinput.replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(ssnet_input).replace("90-days-archive",""))
             inputlist_f.close()
 
+            # tagger
             inputlist_f = open(os.path.join(inputlistdir,"tagger_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % taggerinput.replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(tagger_input).replace("90-days-archive",""))
+            inputlist_f.close()
+            
+            # vertex
+            inputlist_f = open(os.path.join(inputlistdir,"vertex_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(vertexout_input).replace("90-days-archive",""))
             inputlist_f.close()
 
+            # larlite
+            inputlist_f = open(os.path.join(inputlistdir,"reco2d_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(reco2dinput).replace("90-days-archive",""))
+            inputlist_f.close();
+
+            inputlist_f = open(os.path.join(inputlistdir,"mcinfo_inputlist_%05d.txt"% int(jobtag)),"w+")
+            if self._ismc == 1:
+                inputlist_f.write("%s" % os.path.realpath(mcinfoinput).replace("90-days-archive",""))
+            elif self._ismc == 0:
+                inputlist_f.write("INVALID")
+            else:
+                raise Exception("self._ismc is invalid")
+
+            inputlist_f.close()
+                              
             # runlist
             self.info("Filling runlist with jobtag=%s" % str(jobtag))
             runlist_f = open(os.path.join(workdir,"runlist.txt"),"w+")
@@ -184,31 +216,34 @@ class vertex_reco(ds_project_base):
 
             # make output dir
             self.info("Making output directory @dir=%s" % str(outdbdir))
-            cmd("mkdir -p %s" % (outdbdir))
-
-            # copy config over
-            self.info("copy config")
-            cmd("scp -r %s %s" % (self._vtxcfg,workdir))
-            vtxcfg = os.path.join(workdir,os.path.basename(self._vtxcfg))
+            stat,out = commands.getstatusoutput("mkdir -p %s" % (outdbdir))
 
             # copy reco job template over
-            self.info("copy template")
-            cmd("scp -r %s %s" % (self._run_script,workdir))
+            stat,out = commands.getstatusoutput("scp %s %s" % (self._run_script,workdir))
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
+
+            # copy configs over
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._trkcfg,workdir))
+            trkcfg = os.path.join(workdir,os.path.basename(self._trkcfg))
+
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._trkanacfg,workdir))
+            trkanacfg = os.path.join(workdir,os.path.basename(self._trkanacfg))
 
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
-            run_data=run_data.replace("XXX",os.path.basename(vtxcfg))
+            run_data = run_data.replace("YYY",os.path.basename(trkcfg))
+            run_data = run_data.replace("ZZZ",os.path.basename(trkanacfg))
+            run_data = run_data.replace("BBB",str(self._ismc))
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
-            self.info("copy submission")
-            cmd("scp -r %s %s" % (self._sub_script,workdir))
+            print self._sub_script
+            stat,out = commands.getstatusoutput("scp %s %s" % (self._sub_script,workdir))
             sub_script = os.path.join(workdir,os.path.basename(self._sub_script))
             
             sub_data = ""
             with open(sub_script,"r") as f: sub_data = f.read()
-            sub_data=sub_data.replace("AAA","vertex_reco_%s" % str(jobtag))
+            sub_data=sub_data.replace("AAA","tracker_reco_%s" % str(jobtag))
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
@@ -219,7 +254,10 @@ class vertex_reco(ds_project_base):
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
+
             submissionok = False
+
+            self.info("...submitting...")
 
             if True: # use this bool to turn off for testing
 
@@ -239,10 +277,10 @@ class vertex_reco(ds_project_base):
                     submissionid = lsubmit.split("=")[-1]
                     submissionok = True
                 else:
-                    SSH_PREFIX = "ssh %s@fastx-dev \"%s\""
                     #SSH_PREFIX = "ssh %s@xfer.cluster.tufts.edu \"%s\""
-                    SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
-                    
+                    SSH_PREFIX = "ssh %s@fastx-dev.cluster.tufts.edu \"%s\""
+                    SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job_crb_numi_larger_sample.sh")
+
                     name = ""
                     if len(self._names) == 0:
                         name = str(getpass.getuser())
@@ -259,6 +297,7 @@ class vertex_reco(ds_project_base):
                         if "Submitted batch job" in l:
                             submissionid = l.split()[-1].strip()
                             submissionok = True
+
 
             # Create a status object to be logged to DB (if necessary)
             if submissionok:
@@ -295,7 +334,7 @@ class vertex_reco(ds_project_base):
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen("squeue | grep vertex")
+        psinfo = os.popen( "squeue | grep tracker_")
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -315,7 +354,7 @@ class vertex_reco(ds_project_base):
         query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of vertex_reco jobs in running state: %d"%(len(results)))
+        self.info("Number of trackerreco jobs in running state: %d"%(len(results)))
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -342,22 +381,21 @@ class vertex_reco(ds_project_base):
         query =  "select t1.run,t1.subrun,supera"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
         query += " where t1.status=3 and t1.seq=0 order by run, subrun desc"
+
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of vertex_reco jobs in finished state: %d"%(len(results)))
+        self.info("Number of trackerreco jobs in finished state: %d"%(len(results)))
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
 
             # form output file names/workdir
-            jobtag,inputdbdir,outdbdir = cast_run_subrun(run,subrun,
-                                                         self._runtag,self._file_format,
-                                                         self._input_dir,self._out_dir)
+            jobtag,inputdbdir2,outdbdir = cast_run_subrun(run,subrun,
+                                                          self._out_runtag,self._file_format,
+                                                          self._input_dir1,self._out_dir)
             # link
-            vertex_pkl1    = os.path.join(outdbdir,"ana_comb_df_%d.pkl" % jobtag)
-            self.info("verify exists=%s" % vertex_pkl1)
-
-            success = os.path.exists(vertex_pkl1)
+            ana = os.path.join(outdbdir,"track_truth_match_%d.root" % jobtag)
+            success = os.path.exists(ana)
 
             if success == True:
                 self.info("status of job for (%d,%d) is good"%(run,subrun))
@@ -391,6 +429,7 @@ class vertex_reco(ds_project_base):
             self.get_resource()
 
         # check running jobs
+        self.info("got nruns=%s" % self._nruns)
         query = "select run,subrun from %s where status=10 order by run,subrun asc limit %d" %( self._project, self._nruns*10 )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
@@ -400,11 +439,12 @@ class vertex_reco(ds_project_base):
             # we clean out the workdir
             run     = int(x[0])
             subrun  = int(x[1])
-            workdir = os.path.join(self._grid_workdir,"vertex",self._runtag,"%s_%04d_%03d"%(self._project,run,subrun))
-            ##os.system("/cluster/kappa/90-days-archive/wongjiradlab/bin/grm %s"%(workdir))            
-            SS = "rm -rf %s" % (workdir)
+            workdir = os.path.join(self._grid_workdir,"tracker",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
+            self.info("deleting... %s" % workdir)
+            SS="rm -rf %s" % workdir
             self.info(SS)
             os.system(SS)
+
             # reset the status
             data = ''
             status = ds_status( project = self._project,
@@ -418,8 +458,9 @@ class vertex_reco(ds_project_base):
 # A unit test section
 if __name__ == '__main__':
 
-    test_obj = vertex_reco(sys.argv[1])
+    test_obj = trackerreco(sys.argv[1])
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    # test_obj.error_handle()
+    #test_obj.error_handle()
+

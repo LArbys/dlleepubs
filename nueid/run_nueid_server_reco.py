@@ -163,10 +163,12 @@ class nueid_reco(ds_project_base):
             supera_input  = os.path.join(inputdbdir0,self._file_format%("supera",run,subrun))
             supera_input += ".root"
 
-            ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserverout-larcv",run,subrun))
+            #ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserverout-larcv",run,subrun))
+            ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserveroutv2-larcv",run,subrun))
             ssnet_input  += ".root"
 
-            tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
+            #tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
+            tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggeroutv2-larcv",run,subrun))
             tagger_input += ".root"
 
             opreco_input  = os.path.join(inputdbdir0,self._file_format%("opreco",run,subrun))

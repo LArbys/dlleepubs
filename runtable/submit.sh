@@ -24,8 +24,8 @@
 #LARLITEDIR=/cluster/kappa/90-days-archive/wongjiradlab/vgenty/michel_data/larlite
 #SUPERATRUTH=
 
-SUPERADIR=/cluster/kappa/wongjiradlab/cbarne06/KDAR_files_larger_production/larcv/
-LARLITEDIR=/cluster/kappa/wongjiradlab/cbarne06/KDAR_files_larger_production/larlite/
+SUPERADIR=/cluster/kappa/wongjiradlab/cbarne06/numu_CC_sanity_check_plot_files/larcv/
+LARLITEDIR=/cluster/kappa/wongjiradlab/cbarne06/numu_CC_sanity_check_plot_files/larlite/
 SUPERATRUTH=
 
 
