@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --partition gpu
 #SBATCH --nodelist=pgpu02
-#SBATCH --array=0-5
+#SBATCH --array=0-4
 
 CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
 #SSS_BASEDIR=/usr/local/ssnetserver

@@ -56,8 +56,8 @@ class ssnet(ds_project_base):
 
         #self._nruns    = int(resource['NRUNS'])
         #self._max_jobs = int(resource['MAXJOBS'])
-        self._nruns = 10
-        self._max_jobs = 5  # should be roughly 2*(number of workers)
+        self._nruns = 30
+        self._max_jobs = 40  # should be roughly 2*(number of workers)
 
         self._pgpu03_max_nworkers  = 6*3 #18
         self._pgpu01_max_nworkers  = 2*3 # 6
@@ -115,10 +115,13 @@ class ssnet(ds_project_base):
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project, self._filetable)
         query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
         query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
-        #print query
 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
+
+        if len(results)==0:
+            self.info("No jobs to run")
+
         ijob=0
         for x in results:
             #print x[0]
@@ -272,18 +275,26 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
+            dbdata = x[2]
 
             try:
-                runid = int(x[-1].split("jobid:")[1].split()[0])
+                if "," in dbdata:
+                    runid = int(dbdata.split(",")[0].split("jobid:")[-1])
+                else:
+                    runid = int(dbdata.split("jobid:")[1].split()[0])
             except:
-                self.info( "(%d,%d) not parsed"%(run,subrun)+": %s"%(x[-1]))
+                self.info( "(%d,%d) not parsed"%(run,subrun)+": "+dbdata )
                 continue
             if runid not in runningjobs:
                 self.info("(%d,%d) no longer running. updating status,seq to 3,0"%(run,subrun))
+                #slurmjid = int(dbdata.split(":")[1])
+                psacct = os.popen("sacct --format=\"Elapsed\" -j %d"%(runid))
+                data = "jobid:%d,elapsed:%s"%(runid,psacct.readlines()[2].strip())
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
                                     seq     = 0,
+                                    data    = data,
                                     status  = 3 )
                 self.log_status( status )
 

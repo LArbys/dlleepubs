@@ -20,6 +20,10 @@ def extract_rse_larcv( rootfilepath, iopset, producer="wire" ):
     event   = int(imgdata.event())
     io.finalize()
 
+    # Close all open root files
+    for f in rt.gROOT.GetListOfFiles():
+        f.Close()
+
     try:
         jobid=int(os.path.basename(rootfilepath).split("_")[1].split(".")[0])
     except:

@@ -47,6 +47,7 @@ class tagger(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         self._nruns = int(resource['NRUNS'])
+        #self._nruns = int(2e3)#int(resource['NRUNS'])
         self._parent_project = resource['SOURCE_PROJECT']
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
@@ -114,7 +115,7 @@ class tagger(ds_project_base):
             larcvout   = dbdir + "/" + self._outfile_format%("taggerout-larcv",run,subrun)
             larliteout = dbdir + "/" + self._outfile_format%("taggerout-larlite",run,subrun)
             jobtag       = 10000*run + subrun
-            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
+            workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
             inputlistdir = workdir + "/inputlists"
 
             # Corresponding directories for inside the container
@@ -207,7 +208,8 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep %s | grep tagger"%(os.environ["USER"]) )
+        #psinfo = os.popen( "squeue | grep tagger"%(os.environ["USER"]) )
+        psinfo = os.popen( "squeue | grep tagger" )
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -229,15 +231,21 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
+            dbdata = x[2]
             try:
-                runid = int(x[-1].split("jobid:")[1].split()[0])
+                if "," in dbdata:
+                    runid = int(dbdata.split(",")[0].split("jobid:")[-1])
+                else:
+                    runid = int(dbdata.split("jobid:")[1].split()[0])
             except:
                 self.info( "(%d,%d) not parsed"%(run,subrun)+": "+x[-1] )
                 continue
             self.info( "(%d,%d) run ID %d"%(run,subrun,runid))
             if runid not in runningjobs:
                 print "(%d,%d) no longer running. updating status,seq to 3,0" % (run,subrun)
-                data = ""
+                #slurmjid = int(dbdata.split(":")[1])
+                psacct = os.popen("sacct --format=\"Elapsed\" -j %d"%(runid))
+                data = "jobid:%d,elapsed:%s"%(runid,psacct.readlines()[2].strip())
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
@@ -272,7 +280,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             larcvout   = dbdir + "/" + self._outfile_format%("taggerout-larcv",run,subrun)
             larliteout = dbdir + "/" + self._outfile_format%("taggerout-larlite",run,subrun)
             jobtag       = 10000*run + subrun
-            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
+            workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
             
             # Corresponding directories for inside the container
             dbdir_ic = dbdir.replace('90-days-archive','')
@@ -333,7 +341,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             # we clean out the workdir
             run = int(x[0])
             subrun = int(x[1])
-            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
+            workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
             os.system("rm -rf %s"%(workdir))
             # reset the status
             data = ''
@@ -360,5 +368,5 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        #test_obj.error_handle()
+        test_obj.error_handle()
         

@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --partition gpu
 #SBATCH --nodelist=pgpu03
-#SBATCH --array=11-16
+#SBATCH --array=0-16
 
 CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
 SSS_BASEDIR=/cluster/kappa/wongjiradlab/larbys/ssnetserver
@@ -21,6 +21,7 @@ PORT=5560
 
 # GPU LIST
 GPU_ASSIGNMENTS=/cluster/kappa/wongjiradlab/larbys/pubs/dlleepubs/serverssnet/tufts_pgpu03_assignments.txt
+#GPU_ASSIGNMENTS=/cluster/kappa/wongjiradlab/larbys/pubs/dlleepubs/serverssnet/temptufts_pgpu03_assignments.txt
 WORKEROFFSET=0
 
 module load singularity

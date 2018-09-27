@@ -42,7 +42,7 @@ class vertex_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns            = 10
+        self._nruns = int(500)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir        = str(resource['STAGE1DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
@@ -54,7 +54,7 @@ class vertex_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = 300
+        self._max_jobs         = int(1e3)
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
 
         if self._usenames == 1:
@@ -99,8 +99,6 @@ class vertex_reco(ds_project_base):
         results = self._api._cursor.fetchall()
         nremaining = self._max_jobs - len(results)
 
-        self.info(nremaining)
-
         jobslaunched = False
         
         if nremaining<=0:
@@ -126,9 +124,6 @@ class vertex_reco(ds_project_base):
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         ijob = 0
-
-        self.info("nremaining = %s" % nremaining)
-        self.info("len results = %s" % len(results) )
 
         for x in results:
 
@@ -427,4 +422,4 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    #test_obj.error_handle()
+    test_obj.error_handle()
