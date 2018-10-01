@@ -261,7 +261,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
 
         query =  "select t1.run,t1.subrun,supera,opreco"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
-        query += " where t1.status=3 order by run, subrun asc limit %d" % (self._nruns)
+        query += " where t1.status=3 order by run, subrun asc limit %d" % (10)
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of tagger jobs in finished state: %d"%(len(results)))
@@ -368,5 +368,5 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        test_obj.error_handle()
+        #test_obj.error_handle()
         

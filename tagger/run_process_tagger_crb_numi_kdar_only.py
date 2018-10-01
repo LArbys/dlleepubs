@@ -47,6 +47,7 @@ class tagger(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         self._nruns = int(resource['NRUNS'])
+        #self._nruns = int(2e3)#int(resource['NRUNS'])
         self._parent_project = resource['SOURCE_PROJECT']
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
@@ -54,7 +55,7 @@ class tagger(ds_project_base):
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._tagger_cfg     = resource['TAGGERCFG']
         self._container      = resource['CONTAINER']
-        self._max_jobs       = 400
+        self._max_jobs       = int(resource['MAXJOBS'])
         self._ismc           = int(resource['ISMC'])
 
     ## @brief access DB and retrieves new runs and process
@@ -113,19 +114,26 @@ class tagger(ds_project_base):
             dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
             larcvout   = dbdir + "/" + self._outfile_format%("taggerout-larcv",run,subrun)
             larliteout = dbdir + "/" + self._outfile_format%("taggerout-larlite",run,subrun)
-
-            #print x
             jobtag       = 10000*run + subrun
-            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
+            workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
             inputlistdir = workdir + "/inputlists"
+
+            # Corresponding directories for inside the container
+            dbdir_ic = dbdir.replace('90-days-archive','')
+            larcvout_ic = larcvout.replace('90-days-archive','')
+            larliteout_ic = larliteout.replace('90-days-archive','')
+            workdir_ic = workdir.replace('90-days-archive','')
+            inputlistdir_ic = inputlistdir.replace('90-days-archive','')
+
             os.system("mkdir -p %s"%(inputlistdir))
             larcv_input   = open('%s/input_larcv_%09d.txt'%(inputlistdir,jobtag),'w')
             larlite_input = open('%s/input_larlite_%09d.txt'%(inputlistdir,jobtag),'w')
             rerunlist     = open('%s/rerunlist.txt'%(workdir),'w')
-            print >> larcv_input,x[2]
-            print >> larlite_input,x[3]
+            print >> larcv_input,x[2].replace('90-days-archive','')
+            print >> larlite_input,x[3].replace('90-days-archive','')
             if self._ismc==1:
-                print >> larlite_input,x[4]
+                mcinfo = os.path.realpath(x[4])
+                print >> larlite_input,mcinfo.replace('90-days-archive','')
             print >> rerunlist,jobtag
             larcv_input.close()
             larlite_input.close()
@@ -153,7 +161,7 @@ LARLITE_OUTFILENAME=%s
 module load singularity
 srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpubs_job.sh ${CONFIG} ${INPUTLISTDIR} ${LARCV_OUTFILENAME} ${LARLITE_OUTFILENAME} ${JOBIDLIST}"
 """
-            submit = submitscript%(jobtag,workdir,run,subrun,workdir,self._container,os.path.basename(self._tagger_cfg),larcvout,larliteout)
+            submit = submitscript%(jobtag,workdir,run,subrun,workdir_ic,self._container,os.path.basename(self._tagger_cfg),larcvout_ic,larliteout_ic)
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
@@ -200,7 +208,8 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep %s | grep tagger"%(os.environ["USER"]) )
+        #psinfo = os.popen( "squeue | grep tagger"%(os.environ["USER"]) )
+        psinfo = os.popen( "squeue | grep tagger" )
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -222,15 +231,21 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
+            dbdata = x[2]
             try:
-                runid = int(x[-1].split("jobid:")[1].split()[0])
+                if "," in dbdata:
+                    runid = int(dbdata.split(",")[0].split("jobid:")[-1])
+                else:
+                    runid = int(dbdata.split("jobid:")[1].split()[0])
             except:
                 self.info( "(%d,%d) not parsed"%(run,subrun)+": "+x[-1] )
                 continue
             self.info( "(%d,%d) run ID %d"%(run,subrun,runid))
             if runid not in runningjobs:
                 print "(%d,%d) no longer running. updating status,seq to 3,0" % (run,subrun)
-                data = ""
+                #slurmjid = int(dbdata.split(":")[1])
+                psacct = os.popen("sacct --format=\"Elapsed\" -j %d"%(runid))
+                data = "jobid:%d,elapsed:%s"%(runid,psacct.readlines()[2].strip())
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
@@ -265,10 +280,16 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             larcvout   = dbdir + "/" + self._outfile_format%("taggerout-larcv",run,subrun)
             larliteout = dbdir + "/" + self._outfile_format%("taggerout-larlite",run,subrun)
             jobtag       = 10000*run + subrun
-            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
+            workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
             
+            # Corresponding directories for inside the container
+            dbdir_ic = dbdir.replace('90-days-archive','')
+            larcvout_ic = larcvout.replace('90-days-archive','')
+            larliteout_ic = larliteout.replace('90-days-archive','')
+            workdir_ic = workdir.replace('90-days-archive','')
+            supera_ic = supera.replace('90-days-archive','')
 
-            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBTAGGERDIR,larcvout,larliteout,supera))
+            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBTAGGERDIR,larcvout_ic,larliteout_ic,supera_ic))
             lcheck = pcheck.readlines()
             good = False
             try:
@@ -320,7 +341,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             # we clean out the workdir
             run = int(x[0])
             subrun = int(x[1])
-            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
+            workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
             os.system("rm -rf %s"%(workdir))
             # reset the status
             data = ''

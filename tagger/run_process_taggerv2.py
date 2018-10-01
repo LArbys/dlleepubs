@@ -46,8 +46,8 @@ class tagger(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(resource['NRUNS'])
-        #self._nruns = int(2e3)#int(resource['NRUNS'])
+        #self._nruns          = int(resource['NRUNS'])
+        self._nruns          = 40
         self._parent_project = resource['SOURCE_PROJECT']
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
@@ -55,7 +55,8 @@ class tagger(ds_project_base):
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._tagger_cfg     = resource['TAGGERCFG']
         self._container      = resource['CONTAINER']
-        self._max_jobs       = int(resource['MAXJOBS'])
+        #self._max_jobs       = int(resource['MAXJOBS'])
+        self._max_jobs       = 250
         self._ismc           = int(resource['ISMC'])
 
     ## @brief access DB and retrieves new runs and process

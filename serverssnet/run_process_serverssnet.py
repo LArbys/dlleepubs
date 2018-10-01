@@ -56,7 +56,7 @@ class ssnet(ds_project_base):
 
         #self._nruns    = int(resource['NRUNS'])
         #self._max_jobs = int(resource['MAXJOBS'])
-        self._nruns = 30
+        self._nruns = 10
         self._max_jobs = 40  # should be roughly 2*(number of workers)
 
         self._pgpu03_max_nworkers  = 6*3 #18

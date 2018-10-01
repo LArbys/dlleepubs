@@ -28,13 +28,13 @@
 #LARLITEDIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/detsys/noiseAmpUp/larlite
 #SUPERATRUTH=/cluster/kappa/wongjiradlab/lyates01/dl_production/detsys/noiseAmpUp/larcv_mctruth
 
-SUPERADIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/run1ext/larcv
-LARLITEDIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/run1ext/larlite
-SUPERATRUTH=
+#SUPERADIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/run1ext/larcv
+#LARLITEDIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/run1ext/larlite
+#SUPERATRUTH=
 
-#SUPERADIR=/cluster/kappa/wongjiradlab/larbys/data/db/numi_kdar_only_sample/LArCV
-#LARLITEDIR=/cluster/kappa/wongjiradlab/larbys/data/db/numi_kdar_only_sample/LArLITE
-#SUPERATRUTH=/cluster/kappa/wongjiradlab/larbys/data/db/numi_kdar_only_sample/LArCV
+SUPERADIR=/cluster/kappa/wongjiradlab/larbys/data/db/numi_kdar_only_sample_input_files/LArCV/
+LARLITEDIR=/cluster/kappa/wongjiradlab/larbys/data/db/numi_kdar_only_sample_input_files/LArLITE/
+SUPERATRUTH=/cluster/kappa/wongjiradlab/larbys/data/db/numi_kdar_only_sample_input_files/LArCV_Truth/
 
 
 srun ./run_singularity_extract_runlist.sh $SUPERADIR $LARLITEDIR $SUPERATRUTH

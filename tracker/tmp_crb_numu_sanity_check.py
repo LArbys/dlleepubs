@@ -46,7 +46,7 @@ class trackerreco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns            = 20
+        self._nruns = int(1e3)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -56,12 +56,12 @@ class trackerreco(ds_project_base):
         self._grid_workdir     = str(resource['GRID_WORKDIR'])
         self._container        = str(resource['CONTAINER'])
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
-        self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
+        self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job_crb_numi_larger_sample.sh")
         self._trkcfg           = os.path.join(CFG_DIR,"tracker",str(resource['TRKCFG']))
         self._trkanacfg        = os.path.join(CFG_DIR,"truth",str(resource['TRKANACFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = 200
+        self._max_jobs         = int(2e3)
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
@@ -151,12 +151,12 @@ class trackerreco(ds_project_base):
             supera_input  = os.path.join(inputdbdir0,self._file_format%("supera",run,subrun))
             supera_input += ".root"
 
-            #ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserverout-larcv",run,subrun))
-            ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserveroutv2-larcv",run,subrun))
+            ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserverout-larcv",run,subrun))
+            #ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserveroutv2-larcv",run,subrun))
             ssnet_input  += ".root"
 
-            # tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
-            tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggeroutv2-larcv",run,subrun))
+            tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
+            #tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggeroutv2-larcv",run,subrun))
             tagger_input += ".root"
 
             reco2dinput = os.path.join(inputdbdir0,self._file_format%("reco2d",run,subrun))
@@ -237,6 +237,7 @@ class trackerreco(ds_project_base):
             with open(run_script,"w") as f: f.write(run_data)
 
             # copy submission script over
+            print self._sub_script
             stat,out = commands.getstatusoutput("scp %s %s" % (self._sub_script,workdir))
             sub_script = os.path.join(workdir,os.path.basename(self._sub_script))
             
@@ -278,7 +279,7 @@ class trackerreco(ds_project_base):
                 else:
                     #SSH_PREFIX = "ssh %s@xfer.cluster.tufts.edu \"%s\""
                     SSH_PREFIX = "ssh %s@fastx-dev.cluster.tufts.edu \"%s\""
-                    SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job.sh")
+                    SS = "sbatch %s" % os.path.join(workdir,"submit_pubs_job_crb_numi_larger_sample.sh")
 
                     name = ""
                     if len(self._names) == 0:
@@ -354,10 +355,6 @@ class trackerreco(ds_project_base):
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of trackerreco jobs in running state: %d"%(len(results)))
-
-        if len(results) > self._nruns:
-            results = results[:self._nruns]
-
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -465,5 +462,5 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    test_obj.error_handle()
+    #test_obj.error_handle()
 

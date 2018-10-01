@@ -33,7 +33,7 @@ if __name__ == '__main__':
     squeue = squeue[1:]
 
     names   = ["Tagger     ","SSNet      ","Vertex     ","Tracker    ","Nue       ","Likelihood "]
-    stages  = ["tagger_","ssnet_","vertex_","tracker_","nue_","likeliho"]
+    stages  = ["tagger","ssnet","vertex","tracker","nue","likeliho"]
     running = [0,0,0,0,0,0,0]
     queued  = [0,0,0,0,0,0,0]
     

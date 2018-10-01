@@ -56,8 +56,8 @@ class ssnet(ds_project_base):
 
         #self._nruns    = int(resource['NRUNS'])
         #self._max_jobs = int(resource['MAXJOBS'])
-        self._nruns = 30
-        self._max_jobs = 30  # should be roughly 2*(number of workers)
+        self._nruns = 10
+        self._max_jobs = 42  # should be roughly 2*(number of workers)
 
         self._pgpu03_max_nworkers  = 6*3 #18
         self._pgpu01_max_nworkers  = 2*3 # 6
@@ -309,6 +309,8 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of ssnet jobs in finished state: %d"%(len(results)))
+        
+
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -406,5 +408,5 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        test_obj.error_handle()
+        #test_obj.error_handle()
         
