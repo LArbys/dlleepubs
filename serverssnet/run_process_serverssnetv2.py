@@ -57,7 +57,7 @@ class ssnet(ds_project_base):
         #self._nruns    = int(resource['NRUNS'])
         #self._max_jobs = int(resource['MAXJOBS'])
         self._nruns = 10
-        self._max_jobs = 42  # should be roughly 2*(number of workers)
+        self._max_jobs = 34  # should be roughly 2*(number of workers)
 
         self._pgpu03_max_nworkers  = 6*3 #18
         self._pgpu01_max_nworkers  = 2*3 # 6
@@ -405,8 +405,8 @@ if __name__ == '__main__':
         test_obj = ssnet()
 
     jobslaunched = False
-    jobslaunched = test_obj.process_newruns()
+    #jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        #test_obj.error_handle()
+        test_obj.error_handle()
         

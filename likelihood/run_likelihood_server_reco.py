@@ -48,7 +48,7 @@ class likelihood_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(500)
+        self._nruns            = int(5e3) # 50
         self._parent_project1  = str(resource['SOURCE_PROJECT1'])
         self._parent_project2  = str(resource['SOURCE_PROJECT2'])
         self._input_dir1       = str(resource['STAGE1DIR'])
@@ -67,7 +67,7 @@ class likelihood_reco(ds_project_base):
         self._out_runtag       = str(resource['OUT_RUNTAG'])
         self._precut_cfg       = str(resource['PRECUT_CFG'])
         self._is_mc            = int(str(resource['IS_MC']))
-        self._max_jobs         = int(1e3)
+        self._max_jobs         = int(10e3) # 500 
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
         if self._usenames == 1:
@@ -175,6 +175,7 @@ class likelihood_reco(ds_project_base):
             tagger_ll_input += ".root"
             
             vertexana_input  = os.path.join(inputdbdir1,"vertexana_%d.root" % jobtag)
+            vertexout_input  = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
             trackerana_input = os.path.join(inputdbdir2,"tracker_anaout_%d.root" % jobtag)
             vertexpklinput   = os.path.join(inputdbdir1,"ana_comb_df_%d.pkl" % jobtag)
             nueidpklinput    = os.path.join(inputdbdir3,"nueid_comb_df_%d.pkl" % jobtag)
@@ -198,6 +199,11 @@ class likelihood_reco(ds_project_base):
             # vertexana
             inputlist_f = open(os.path.join(inputlistdir,"vertex_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
             inputlist_f.write("%s" % os.path.realpath(vertexana_input).replace("90-days-archive",""))
+            inputlist_f.close()
+
+            # vertexout
+            inputlist_f = open(os.path.join(inputlistdir,"vertex_out_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(vertexout_input).replace("90-days-archive",""))
             inputlist_f.close()
 
             # tracker ana

@@ -54,7 +54,7 @@ class vertex_reco(ds_project_base):
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
         self._runtag           = str(resource['RUNTAG'])
-        self._max_jobs         = 300
+        self._max_jobs         = 500
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
 
         if self._usenames == 1:
@@ -62,7 +62,7 @@ class vertex_reco(ds_project_base):
                            "cbarne06",
                            "jmoon02",
                            "ran01",
-                           "lyates01",
+                           #"lyates01",
                            "ahourl01",
                            "adiaz09"]
 

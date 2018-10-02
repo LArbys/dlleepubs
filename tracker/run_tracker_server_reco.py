@@ -61,7 +61,7 @@ class trackerreco(ds_project_base):
         self._trkanacfg        = os.path.join(CFG_DIR,"truth",str(resource['TRKANACFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = 200
+        self._max_jobs         = 500
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
@@ -70,7 +70,7 @@ class trackerreco(ds_project_base):
                            "cbarne06",
                            "jmoon02",
                            "ran01",
-                           "lyates01",
+                           #"lyates01",
                            "ahourl01",
                            "adiaz09"]
             
@@ -355,9 +355,6 @@ class trackerreco(ds_project_base):
         results = self._api._cursor.fetchall()
         self.info("Number of trackerreco jobs in running state: %d"%(len(results)))
 
-        if len(results) > self._nruns:
-            results = results[:self._nruns]
-
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -465,5 +462,5 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    test_obj.error_handle()
+    #test_obj.error_handle()
 
