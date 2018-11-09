@@ -47,7 +47,7 @@ class tagger(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         #self._nruns          = int(resource['NRUNS'])
-        self._nruns          = 40
+        self._nruns          = 10
         self._parent_project = resource['SOURCE_PROJECT']
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
@@ -56,7 +56,7 @@ class tagger(ds_project_base):
         self._tagger_cfg     = resource['TAGGERCFG']
         self._container      = resource['CONTAINER']
         #self._max_jobs       = int(resource['MAXJOBS'])
-        self._max_jobs       = 250
+        self._max_jobs       = 360
         self._ismc           = int(resource['ISMC'])
 
     ## @brief access DB and retrieves new runs and process
@@ -262,7 +262,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
 
         query =  "select t1.run,t1.subrun,supera,opreco"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
-        query += " where t1.status=3 order by run, subrun asc limit %d" % (10)
+        query += " where t1.status=3 order by run, subrun asc limit %d" % (self._nruns)
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of tagger jobs in finished state: %d"%(len(results)))
@@ -333,7 +333,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
 
 
         # check running jobs
-        query = "select run,subrun from %s where status=10 order by run,subrun asc limit %d" %( self._project, self._nruns*10 )
+        query = "select run,subrun from %s where status=10 order by run,subrun asc limit %d" %( self._project, self._nruns*1000 )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
 
@@ -366,8 +366,8 @@ if __name__ == '__main__':
         test_obj = tagger()
      
     jobslaunched = False
-    #jobslaunched = test_obj.process_newruns()
+    jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        #test_obj.error_handle()
+        test_obj.error_handle()
         
