@@ -50,7 +50,7 @@ class nueid_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(500)
+        self._nruns = int(5000)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -69,7 +69,7 @@ class nueid_reco(ds_project_base):
         self._flashcfg         = os.path.join(CFG_DIR,"flash",str(resource['FLASHCFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = int(1e3)
+        self._max_jobs         = int(1e4)
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         

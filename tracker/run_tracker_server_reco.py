@@ -61,7 +61,7 @@ class trackerreco(ds_project_base):
         self._trkanacfg        = os.path.join(CFG_DIR,"truth",str(resource['TRKANACFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = 500
+        self._max_jobs         = 50000
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         

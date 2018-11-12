@@ -47,6 +47,7 @@ class anatagger(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         self._nruns = int(resource['NRUNS'])
+        self._nruns = 5 #for debug
         self._parent_project = resource['SOURCE_PROJECT']
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
@@ -54,6 +55,7 @@ class anatagger(ds_project_base):
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._tagger_cfg     = resource['ANATAGGERCFG']
         self._container      = resource['CONTAINER']
+        self._isv2           = resource["IsV2"]
         self._max_jobs       = int(resource['MAXJOBS'])
         self._ismc           = int(resource['ISMC'])
 
@@ -70,8 +72,6 @@ class anatagger(ds_project_base):
         # If resource info is not yet read-in, read in.
         if self._nruns is None:
             self.get_resource()
-        # debug
-        #self._nruns = 100
 
         # check if we're running the max number of jobs currently
         query = "select run,subrun from %s where status=2 order by run,subrun asc" %( self._project )
@@ -115,8 +115,13 @@ class anatagger(ds_project_base):
             
             dbdir          = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
             
-            tagger_larcv   = supera.replace("supera","taggerout-larcv")
-            tagger_larlite = supera.replace("supera","taggerout-larlite")
+            if self._isv2:
+                tagger_larcv   = supera.replace("supera","taggeroutv2-larcv")
+                tagger_larlite = supera.replace("supera","taggeroutv2-larlite")
+            else:
+                tagger_larcv   = supera.replace("supera","taggerout-larcv")
+                tagger_larlite = supera.replace("supera","taggerout-larlite")
+                
             anaout         = dbdir + "/" + self._outfile_format%("taggerana",run,subrun)
             jobtag         = 10000*run + subrun
             workdir        = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
@@ -394,8 +399,8 @@ if __name__ == '__main__':
         test_obj = anatagger()
      
     jobslaunched = False
-    #jobslaunched = test_obj.process_newruns()
+    jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        test_obj.error_handle()
+        #test_obj.error_handle()
         
