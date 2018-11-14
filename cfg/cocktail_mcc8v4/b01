@@ -1,5 +1,0 @@
-python dlleepubs/vertex/run_vertex_reco.py vertex_mcc8v4_cocktail_p00_nu_only_cosmic
-python dlleepubs/vertex/run_vertex_reco.py vertex_mcc8v4_cocktail_p01_nu_only_cosmic
-python dlleepubs/vertex/run_vertex_reco.py vertex_mcc8v4_cocktail_p02_nu_only_cosmic
-python dlleepubs/vertex/run_vertex_reco.py vertex_mcc8v4_cocktail_p03_nu_only_cosmic
-python dlleepubs/vertex/run_vertex_reco.py vertex_mcc8v4_cocktail_p04_nu_only_cosmic
