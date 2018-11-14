@@ -148,9 +148,11 @@ class dlcosmictag(ds_project_base):
 #SBATCH --output=%s/log_dlcosmictag_%d_%d.txt
 #SBATCH --ntasks=1
 #SBATCH --time=480:00
-#SBATCH --mem-per-cpu=8000
+#SBATCH --mem-per-cpu=6000
+#SBATCH --cpus-per-task=1
 #SBATCH --partition=gpu
 #SBATCH --nodelist=pgpu03
+#SBATCH --array=1
 
 WORKDIR=%s
 CONTAINER_LARFLOW=%s

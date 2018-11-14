@@ -56,8 +56,8 @@ class ssnet(ds_project_base):
 
         #self._nruns    = int(resource['NRUNS'])
         #self._max_jobs = int(resource['MAXJOBS'])
-        self._nruns = 10
-        self._max_jobs = 40  # should be roughly 2*(number of workers)
+        self._nruns = 15
+        self._max_jobs = 30  # should be roughly 2*(number of workers)
 
         self._pgpu03_max_nworkers  = 6*3 #18
         self._pgpu01_max_nworkers  = 2*3 # 6
@@ -171,7 +171,8 @@ class ssnet(ds_project_base):
 #SBATCH --mem-per-cpu=2560
 
 # CONTAINER
-CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0_update080617.img
+#CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0_update080617.img
+CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
 
 # LOCATION OF SSNETSERVER CODE (IN CONTAINER)
 SSS_BASEDIR=/cluster/kappa/wongjiradlab/larbys/ssnetserver # for debug
@@ -394,6 +395,69 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
                                 status  = 1 )
             self.log_status(status)
 
+    ## @brief access DB and retrieves runs for which 1st process failed. Clean up.
+    def modstatus(self):
+        # WARNING, USED TO MODIFY SPECIFIC ENTRIES!!
+        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v6_extbnb.txt",'r')
+        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v6_bnb5e19.txt",'r')
+        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_nue_signal_overlay.txt",'r')
+        fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_nue_intrinsic_overlay.txt",'r')
+        lbroken = fbroken.readlines()
+        rslist = []
+        for l in lbroken:
+            l = l.strip()
+            #info = l.split(",")
+            info = l.split()
+            run = int(info[0])
+            subrun = int(info[1])
+            rs = (run,subrun)
+            if rs not in rslist:
+                rslist.append(rs)
+
+        # Attempt to connect DB. If failure, abort
+        if not self.connect():
+	    self.error('Cannot connect to DB! Aborting...')
+	    return
+
+        # If resource info is not yet read-in, read in.
+        if self._nruns is None:
+            self.get_resource()
+
+        # check running jobs
+        query = "select run,subrun from %s where status!=1 order by run,subrun asc" %( self._project )
+        self._api._cursor.execute(query)
+        results = self._api._cursor.fetchall()
+
+        # Fetch runs from DB and process for # runs specified for this instance.
+        for x in results:
+            # we clean out the workdir
+            run = int(x[0])
+            subrun = int(x[1])
+            runmod100 = run%100
+            rundiv100 = run/100
+            subrunmod100 = subrun%100
+            subrundiv100 = subrun/100
+
+            rs = (run,subrun)
+            if rs not in rslist:
+                #print "ok, skip: ",rs
+                continue
+            dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
+            ssnetout = dbdir + "/" + self._outfile_format%("ssnetserveroutv2-larcv",run,subrun)
+            cmd = "rm -f "+ssnetout
+            print "reset state for ",rs,": ",cmd
+            # reset the status, delete the existing file
+            if True:
+                os.system(cmd)
+                data = ''
+                status = ds_status( project = self._project,
+                                    run     = int(x[0]),
+                                    subrun  = int(x[1]),
+                                    seq     = 0,
+                                    data    = data,
+                                    status  = 1 )
+                self.log_status(status)
+
 # A unit test section
 if __name__ == '__main__':
 
@@ -408,6 +472,5 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        #test_obj.error_handle()
-        
-        
+        test_obj.error_handle()
+        #test_obj.modstatus()
