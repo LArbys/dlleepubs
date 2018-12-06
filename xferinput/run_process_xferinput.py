@@ -50,6 +50,8 @@ class xfer_input(ds_project_base):
         self._outfile_format = resource['OUTFILE_FORMAT']
         self._filetable      = resource['FILETABLE']
         self._ismc           = int(resource['ISMC'])
+        # debug
+        #self._nruns = 1
 
     ## @brief access DB and retrieves new runs and process
     def process_newruns(self):
@@ -71,20 +73,33 @@ class xfer_input(ds_project_base):
         hascomplete = self._api._cursor.fetchall()[0][0]
         self._api._cursor.execute("select count(column_name) from information_schema.columns where table_name='%s' and column_name='numevents'"%(self._filetable))
         hasnumevents = self._api._cursor.fetchall()[0][0]
+        self._api._cursor.execute("select count(column_name) from information_schema.columns where table_name='%s' and column_name='larcvtruth'"%(self._filetable))
+        haslarcvtruth = self._api._cursor.fetchall()[0][0]
+
 
         # Get Runs with status=1 or 2 (0=notrun,1=copied,2=error,3=done)
         if hascomplete==0 or hasnumevents==0:
-            query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun) where status=1 order by run, subrun asc limit %d" 
-            query = query % (self._project,self._project,self._project,self._filetable,self._project,self._filetable,self._project,self._filetable,self._nruns)
+            if haslarcvtruth:
+                query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo,larcvtruth from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun) where status=1 order by run, subrun asc limit %d" 
+                query = query % (self._project,self._project,self._project,self._filetable,self._project,self._filetable,self._project,self._filetable,self._nruns)
+            else:
+                query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun) where status=1 order by run, subrun asc limit %d" 
+                query = query % (self._project,self._project,self._project,self._filetable,self._project,self._filetable,self._project,self._filetable,self._nruns)
         else:
             self.info("excluding bad runs using complete and numevents columns")
-            query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun)"
+            if haslarcvtruth:
+                query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo,larcvtruth from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun)"
+            else:
+                query = "select %s.run,%s.subrun,supera,opreco,reco2d,mcinfo from %s join %s on (%s.run=%s.run and %s.subrun=%s.subrun)"
             query += " where status=1 and complete=true and  numevents>0"
             query += " order by run, subrun asc limit %d" 
             query = query % (self._project,self._project,self._project,self._filetable,self._project,self._filetable,self._project,self._filetable,self._nruns)            
 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
+        
+        
+
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -96,16 +111,19 @@ class xfer_input(ds_project_base):
                       "opreco":x[3],
                       "reco2d":x[4],
                       "mcinfo":x[5]}
+            if haslarcvtruth:
+                infile["larcvtruth"] = x[6]
             outfile = {}
             #print "===== (",run,",",subrun,") ========="
             #print self._outfile_format
-            flist = ["supera","opreco","reco2d","mcinfo"]
-            if  self._ismc==0:
+            flist = ["supera","opreco","reco2d","mcinfo","larcvtruth"]
+            if self._ismc==0:
                 flist = ["supera","opreco","reco2d"]
             for f in flist:
                 dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
                 os.system("mkdir -p %s"%(dbdir))
                 infile[f] = infile[f].replace('/cluster/kappa/','/cluster/tufts/')
+                infile[f] = infile[f].replace('mcc9tag2_nueintrinsic_corsika','bnbcorsika_intrinsicnue_tag2')
                 outfile[f] =  dbdir + "/" + self._outfile_format%(f,run,subrun)
                 #print infile[f] +" " + outfile[f]
                 SS = "rsync -avL --progress %s %s" % ( infile[f], outfile[f] )

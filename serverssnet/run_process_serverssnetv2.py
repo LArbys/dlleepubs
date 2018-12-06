@@ -307,6 +307,7 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
         query =  "select t1.run,t1.subrun,supera"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
         query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit %d"%(self._nruns)
+        #query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit %d"%(3)
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of ssnet jobs in finished state: %d"%(len(results)))
@@ -401,7 +402,9 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
         #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v6_extbnb.txt",'r')
         #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v6_bnb5e19.txt",'r')
         #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_nue_signal_overlay.txt",'r')
-        fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_nue_intrinsic_overlay.txt",'r')
+        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_nue_intrinsic_overlay.txt",'r')
+        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_bnb_overlay_p00.txt",'r')
+        fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_bnb_overlay_p01.txt",'r')
         lbroken = fbroken.readlines()
         rslist = []
         for l in lbroken:
@@ -424,7 +427,7 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
             self.get_resource()
 
         # check running jobs
-        query = "select run,subrun from %s where status!=1 order by run,subrun asc" %( self._project )
+        query = "select run,subrun from %s where status>2 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
 
@@ -469,8 +472,9 @@ if __name__ == '__main__':
         test_obj = ssnet()
 
     jobslaunched = False
-    jobslaunched = test_obj.process_newruns()
+    #jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        test_obj.error_handle()
+        #test_obj.error_handle()
         #test_obj.modstatus()
+        pass

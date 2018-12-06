@@ -9,6 +9,14 @@ PUB_DB_NAME=os.environ["PUB_PSQL_WRITER_DB"]
 
 def insert_metadata( runtable, ds, metadata, folder_dict ):
 
+    # to complete an entry need:
+    # larcv, opreco, reco2d, mcinfo (if MC), mctruth (if MC)
+    type_status = {"larcv":False,
+                   "opreco":False,
+                   "reco2d":False,
+                   "mcinfo":False,
+                   "larcvtruth":False}
+
     ikeys = metadata.keys()
     ikeys.sort()
 
@@ -19,46 +27,64 @@ def insert_metadata( runtable, ds, metadata, folder_dict ):
         run = int(k[0])
         subrun = int(k[1])
 
-        complete = True
         if "larcv-file" in entrydata:
             larcvsam  = os.path.basename(entrydata["larcv-file"])
             larcv     = folder_dict["larcv"]+"/"+larcvsam
+            type_status["larcv"] = True
         else:
             larcvsam = ""
             larcv = ""
-            complete = False
+
         if "opreco-file" in entrydata:
             oprecosam  = os.path.basename(entrydata["opreco-file"])
             opreco     = folder_dict["opreco"]+"/"+oprecosam
+            type_status["opreco"] = True
         else:
             oprecosam = ""
             opreco = ""
-            complete = False
+
         if "reco2d-file" in entrydata:
             reco2dsam  = os.path.basename(entrydata["reco2d-file"])
             reco2d     = folder_dict["reco2d"]+"/"+reco2dsam
+            type_status["reco2d"] = True
         else:
             reco2dsam = ""
             reco2d = ""
-            complete = False
 
-
-        ismc = False
-        if "mcinfo-file" in entrydata and entrydata["mcinfo-file"] is not None:
+        if "mcinfo-file" in entrydata:
             mcinfosam = os.path.basename(entrydata["mcinfo-file"])
             mcinfo    = folder_dict["mcinfo"]+"/"+mcinfosam
-            ismc = True
+            type_status["mcinfo"] = True
         else:
             mcinfosam = ""
             mcinfo = ""
-            ismc = False
 
-        if "larcvtruth-file" in entrydata and entrydata["larcvtruth-file"] is not None:
+        if "backtracker-file" in entrydata:
+            reco2dsam  = os.path.basename(entrydata["backtracker-file"])
+            reco2d     = folder_dict["backtracker"]+"/"+reco2dsam
+            mcinfosam  = os.path.basename(entrydata["backtracker-file"])
+            mcinfo     = folder_dict["backtracker"]+"/"+reco2dsam
+            type_status["reco2d"] = True
+            type_status["mcinfo"] = True
+
+
+        if "larcvtruth-file" in entrydata:
             larcvtruthsam = os.path.basename(entrydata["larcvtruth-file"])
             larcvtruth    = folder_dict["larcvtruth"]+"/"+larcvtruthsam
+            type_status["larcvtruth"] = True
         else:
             larcvtruthsam = ""
             larcvtruth    = ""
+
+        # check completeness
+        complete = True
+        hasMC = False
+        for ftype in ["larcv","opreco","reco2d"]:
+            if not type_status[ftype]:
+                complete = False
+        for ftype in ["mcinfo","larcvtruth"]:
+            if type_status[ftype]:
+                hasMC = True
 
         event_count = 0
         if "event_count" in entrydata:
@@ -86,33 +112,44 @@ def insert_metadata( runtable, ds, metadata, folder_dict ):
         tabledef = "( run, subrun, numevents, numfiles, runlist, ismc, complete,"
         tabledef += " supera, opreco, reco2d, mcinfo, larcvtruth," # current db paths
         tabledef += " superasam, oprecosam, reco2dsam, mcinfosam, larcvtruthsam)" # samweb unique names
-        values = (run,subrun,event_count,nfiles,runlist,str(ismc).lower(),str(complete).lower(),larcv,opreco,reco2d,mcinfo,larcvtruth,larcvsam,oprecosam,reco2dsam,mcinfosam,larcvtruthsam)
+        values = (run,subrun,event_count,nfiles,runlist,str(hasMC).lower(),str(complete).lower(),larcv,opreco,reco2d,mcinfo,larcvtruth,larcvsam,oprecosam,reco2dsam,mcinfosam,larcvtruthsam)
         valuestr = "(%d,%d,%d,%d,'%s',%s,%s,'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"%values
 
+        #print "[debug]"
         #print "inserting ",k,":",tabledef
         #print "  values: ",valuestr
         os.system("psql -U tufts-pubs -h nudot.lns.mit.edu %s -c \"INSERT INTO %s_paths %s VALUES %s;\""
                   % (PUB_DB_NAME,runtable,tabledef,valuestr) )
 
-def parse_dataset_dict( metadatalist, larcvtypes=["larcv","opreco","reco2d"], ismc=False ):
+def parse_dataset_dict( metadatadict, indextype="larcv", ismc=False ):
     import pickle
-    metadata = [ pickle.load( open(f, 'rb') ) for f in metadatalist ]
+    larcvtypes = [indextype]
+    for k in metadatadict:
+        if k!=indextype:
+            larcvtypes.append( k )
+    
+    metadata = [ pickle.load( open( metadatadict[k], 'rb') ) for k in larcvtypes ]
     index = metadata[0].keys()
     index.sort()
 
-    if ismc:
-        larcvtypes.append("mcinfo")
-
     mergedmeta = {}
+    nskipped = 0
+    skipped_due_tofile = {}
+    for k in larcvtypes:
+        skipped_due_tofile[k] = 0
     for idx in index:
         #print "idx: ",idx
         inall = True
         for n,x in enumerate(metadata):
             if idx not in x:
+                print idx, " from ",larcvtypes[n]," a bad key"
                 inall = False
+                skipped_due_tofile[larcvtypes[n]] += 1
+                break
 
         if not inall:
             print "skipping: ",idx
+            nskipped += 1
             continue
 
         entrydata = [ x[idx] for x in metadata ]
@@ -131,6 +168,9 @@ def parse_dataset_dict( metadatalist, larcvtypes=["larcv","opreco","reco2d"], is
         #print mergedentry
         mergedmeta[ idx ] = mergedentry
     
+    print "Entries merged: ",len(mergedmeta)
+    print "Entries skipped: ",nskipped
+    print skipped_due_tofile
 
     return mergedmeta
 
@@ -147,18 +187,35 @@ if __name__ == "__main__":
     #                "../../../data/mcc9/tag0/pathlist_mcc8compare_opreco.txt.pkl",
     #                "../../../data/mcc9/tag0/pathlist_mcc8compare_reco2d.txt.pkl"]
 
-    runtable = "mcc9tag1_bnb5e19"
-    metadatalist = ["../../../data/mcc9/bnb5e19_tag1/pathlist_data_bnb_run1_unblind_mcc9_beta1_oct_reco_2d_larcv_wholeview.pkl",
-                    "../../../data/mcc9/bnb5e19_tag1/pathlist_data_bnb_run1_unblind_mcc9_beta1_oct_reco_2d_larlite_opreco.pkl",
-                    "../../../data/mcc9/bnb5e19_tag1/pathlist_data_bnb_run1_unblind_mcc9_beta1_oct_reco_2d_larlite_reco2d.pkl"]
+    #runtable = "mcc9tag1_bnb5e19"
+    #metadatalist = ["../../../data/mcc9/bnb5e19_tag1/pathlist_data_bnb_run1_unblind_mcc9_beta1_oct_reco_2d_larcv_wholeview.pkl",
+    #                "../../../data/mcc9/bnb5e19_tag1/pathlist_data_bnb_run1_unblind_mcc9_beta1_oct_reco_2d_larlite_opreco.pkl",
+    #                "../../../data/mcc9/bnb5e19_tag1/pathlist_data_bnb_run1_unblind_mcc9_beta1_oct_reco_2d_larlite_reco2d.pkl"]
+    #folders = {"larcv":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/bnb5e19_tag1/data/larcv",
+    #           "opreco":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/bnb5e19_tag1/data/larlite",
+    #           "reco2d":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/bnb5e19_tag1/data/larlite"}
+
+
+    runtable = "mcc9tag2_nueintrinsic_corsika"
+    pathlist_folder="/cluster/tufts/wongjiradlab/larbys/data/mcc9/bnbcorsika_intrinsicnue_tag2"
+    metadatadict = {"larcv":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larcv_wholeview.pkl",
+                    "opreco":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larlite_opreco.pkl",
+                    "backtracker":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larlite_backtracker.pkl",
+                    "larcvtruth":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larcv_mctruth.pkl"}
+    folders = {"larcv":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larcv",
+               "opreco":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larlite",
+               "backtracker":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larlite",
+               "larcvtruth":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larcv"}
+
 
     print "BUILD TABLE FOR ",runtable," USING SAM META-DATA"
-    metadata = parse_dataset_dict( metadatalist )
+    metadata = parse_dataset_dict( metadatadict )
 
     # we list the folders where the files are parked on tufts (or where symlinks are)
-    folders = {"larcv":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/bnb5e19_tag1/data/larcv",
-               "opreco":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/bnb5e19_tag1/data/larlite",
-               "reco2d":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/bnb5e19_tag1/data/larlite"}
+
+    if False:
+        print "debug: stop after parsing of metadata dictionary"
+        sys.exit(-1)
 
     ## set environment variables for PUBS database
     os.system("$PUB_TOP_DIR/sbin/remove_runtable %s"%(runtable))

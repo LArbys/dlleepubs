@@ -47,7 +47,7 @@ class anatagger(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         self._nruns = int(resource['NRUNS'])
-        self._nruns = 5 #for debug
+        self._nruns = 50 #for debug
         self._parent_project = resource['SOURCE_PROJECT']
         self._out_dir        = resource['OUTDIR']
         self._outfile_format = resource['OUTFILE_FORMAT']
@@ -223,6 +223,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_anatagge
             
                 # Log status
                 self.log_status( status )
+                jobslaunched = True
 
             # Break from loop if counter became 0
             #if not ctr: break
@@ -399,7 +400,7 @@ if __name__ == '__main__':
         test_obj = anatagger()
      
     jobslaunched = False
-    jobslaunched = test_obj.process_newruns()
+    #jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
         #test_obj.error_handle()

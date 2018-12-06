@@ -56,7 +56,7 @@ class tagger(ds_project_base):
         self._tagger_cfg     = resource['TAGGERCFG']
         self._container      = resource['CONTAINER']
         #self._max_jobs       = int(resource['MAXJOBS'])
-        self._max_jobs       = 360
+        self._max_jobs       = 50
         self._ismc           = int(resource['ISMC'])
 
     ## @brief access DB and retrieves new runs and process
@@ -87,7 +87,7 @@ class tagger(ds_project_base):
             nremaining = self._nruns
 
         # Fetch runs from DB and process for # runs specified for this instance.
-        query =  "select t1.run,t1.subrun,supera,opreco,mcinfo"
+        query =  "select t1.run,t1.subrun,supera,opreco,mcinfo,reco2d"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun) join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._project,self._filetable,self._parent_project)
         query += " where t1.status=1 and t3.status=3 order by run, subrun desc limit %d" % (nremaining) 
         #print query
@@ -134,7 +134,10 @@ class tagger(ds_project_base):
             print >> larlite_input,x[3].replace('90-days-archive','')
             if self._ismc==1:
                 mcinfo = os.path.realpath(x[4])
-                print >> larlite_input,mcinfo.replace('90-days-archive','')
+                reco2d = os.path.realpath(x[5])
+                # for sample using backtracker this is in reco2d file
+                #print >> larlite_input,mcinfo.replace('90-days-archive','')
+                print >> larlite_input,reco2d.replace('90-days-archive','')
             print >> rerunlist,jobtag
             larcv_input.close()
             larlite_input.close()
@@ -245,8 +248,9 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             if runid not in runningjobs:
                 print "(%d,%d) no longer running. updating status,seq to 3,0" % (run,subrun)
                 #slurmjid = int(dbdata.split(":")[1])
-                psacct = os.popen("sacct --format=\"Elapsed\" -j %d"%(runid))
-                data = "jobid:%d,elapsed:%s"%(runid,psacct.readlines()[2].strip())
+                # psacct = os.popen("sacct --format=\"Elapsed\" -j %d"%(runid))
+                # data = "jobid:%d,elapsed:%s"%(runid,psacct.readlines()[2].strip())
+                data = "jobid:%d"%(runid)
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
@@ -369,5 +373,5 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        test_obj.error_handle()
+        # test_obj.error_handle()
         

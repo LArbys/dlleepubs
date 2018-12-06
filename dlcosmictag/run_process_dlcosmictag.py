@@ -54,8 +54,61 @@ class dlcosmictag(ds_project_base):
         self._grid_workdir      = resource['GRID_WORKDIR']
         self._container_larflow = resource['CONTAINER_LARFLOW']
         self._container_convert = resource['CONTAINER_CONVERT']
-        self._max_jobs       = 1
+        self._max_jobs       = 6
         self._ismc           = 0
+        self._nruns          = 6
+
+    def check_running_jobs(self):
+        # check running jobs. return number still running.
+
+        # get job listing
+        psinfo = os.popen( "squeue | grep dlcosmic" )
+        lsinfo = psinfo.readlines()
+        runningjobs = []
+        for l in lsinfo:
+            l = l.strip()
+            info = l.split()
+            if len(info)>=8:
+                try:
+                    jobid = int(info[0].strip())
+                    runningjobs.append( jobid )
+                except:
+                    continue
+        self.info("Number of running jobs on queue: %d"%(len(runningjobs)))
+
+        query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
+        self._api._cursor.execute(query)
+        results = self._api._cursor.fetchall()
+        nrunning = len(results)
+        self.info("Number of dlcosmictag jobs in running state according to DB: %d"%(len(results)))
+        for x in results:
+            run    = int(x[0])
+            subrun = int(x[1])
+            dbdata = x[2]
+            try:
+                if "," in dbdata:
+                    runid = int(dbdata.split(",")[0].split("jobid:")[-1])
+                else:
+                    runid = int(dbdata.split("jobid:")[1].split()[0])
+            except:
+                self.info( "(%d,%d) not parsed"%(run,subrun)+": "+x[-1] )
+                continue
+            self.info( "(%d,%d) run ID %d"%(run,subrun,runid))
+            if runid not in runningjobs:
+                print "(%d,%d) no longer running. updating status,seq to 3,0" % (run,subrun)
+                psacct = os.popen("sacct --format=\"Elapsed\" -j %d"%(runid))
+                data = "jobid:%d,elapsed:%s"%(runid,psacct.readlines()[2].strip())
+                status = ds_status( project = self._project,
+                                    run     = int(x[0]),
+                                    subrun  = int(x[1]),
+                                    seq     = 0,
+                                   data    = data,
+                                    status  = 3 )
+                self.log_status( status )
+                nrunning += -1
+        print "number of jobs still running: ",nrunning
+        return nrunning
+        
 
     ## @brief access DB and retrieves new runs and process
     def process_newruns(self):
@@ -72,13 +125,14 @@ class dlcosmictag(ds_project_base):
             self.get_resource()
 
         # check if we're running the max number of jobs currently
-        query = "select run,subrun from %s where status=2 order by run,subrun asc" %( self._project )
-        self._api._cursor.execute(query)
-        results = self._api._cursor.fetchall()
-        nremaining = self._max_jobs - len(results)
+        nrunning = self.check_running_jobs()
+        nremaining = self._max_jobs - nrunning
         
-        if nremaining<=0:
-            self.info("Already running (%d) max number of dlcosmictag jobs (%d)" % (len(results),self._max_jobs) )
+        #if nremaining<=0:
+        #    self.info("Already running (%d) max number of dlcosmictag jobs (%d)" % (nrunning,self._max_jobs) )
+        #    return jobslaunched
+        if nrunning>0:
+            self.info("For DLCosmictag, we have to launch jobs as sets for GPU-memory reasons. So all jobs must have finished, but %d remain."%(nrunning))
             return jobslaunched
 
         if nremaining>self._nruns:
@@ -93,7 +147,8 @@ class dlcosmictag(ds_project_base):
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         print "number of jobs to run from query: ",len(results)
-        for x in results:
+
+        for arrayid,x in enumerate(results):
 
             # for each:
             # a) make workdir
@@ -129,6 +184,7 @@ class dlcosmictag(ds_project_base):
             larcv_input   = open('%s/input_larcv_%09d.txt'%(inputlistdir,jobtag),'w')
             larlite_input = open('%s/input_larlite_%09d.txt'%(inputlistdir,jobtag),'w')
             rerunlist     = open('%s/rerunlist.txt'%(workdir),'w')
+            supera    = x[2]
             supera_ic = x[2].replace('90-days-archive','')
             print >> larcv_input,x[2].replace('90-days-archive','')
             print >> larlite_input,x[3].replace('90-days-archive','')
@@ -152,28 +208,29 @@ class dlcosmictag(ds_project_base):
 #SBATCH --cpus-per-task=1
 #SBATCH --partition=gpu
 #SBATCH --nodelist=pgpu03
-#SBATCH --array=1
 
 WORKDIR=%s
 CONTAINER_LARFLOW=%s
 CONTAINER_CONVERT=%s
 INPUTLISTDIR=${WORKDIR}/inputlists
-SUPERA_INPUT_IC=%s
-OUTPUTDIR_IC=%s
+SUPERA_INPUT=%s
+OUTPUTDIR=%s
 LARCV_OUTFILENAME=%s
 LARLITE_OUTFILENAME=%s
 WEIGHTS_DIR=/tmp/larflow_weights/
+ARRAYID=%d
 
-srun cd ${WORKDIR} && ./job_dlcosmictag.sh ${CONTAINER_CONVERT} ${CONTAINER_LARFLOW} ${SUPERA_INPUT_IC} ${OUTPUTDIR_IC} ${WEIGHTS_DIR} ${WORKDIR}
+srun echo ${WORKDIR} && cd ${WORKDIR} && ./job_dlcosmictag.sh ${CONTAINER_CONVERT} ${CONTAINER_LARFLOW} ${SUPERA_INPUT} ${OUTPUTDIR} ${WEIGHTS_DIR} ${WORKDIR} ${ARRAYID}
 """
-            submit = submitscript%(jobtag,workdir,run,subrun,workdir_ic,self._container_larflow,self._container_convert,
-                                   supera_ic,dbdir_ic,larcvout_ic,larliteout_ic)
+            submit = submitscript%(jobtag,workdir,run,subrun,workdir,
+                                   self._container_larflow,self._container_convert,
+                                   supera,dbdir,larcvout_ic,larliteout_ic,arrayid)
                                    
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
 
-            if True:
+            if False:
                 print "exit for debug"
                 sys.exit(-1)
 
@@ -218,53 +275,6 @@ srun cd ${WORKDIR} && ./job_dlcosmictag.sh ${CONTAINER_CONVERT} ${CONTAINER_LARF
         if self._nruns is None:
             self.get_resource()
 
-        # get job listing
-        #psinfo = os.popen( "squeue | grep dlcosmictag"%(os.environ["USER"]) )
-        psinfo = os.popen( "squeue | grep dlcosmictag" )
-        lsinfo = psinfo.readlines()
-        runningjobs = []
-        for l in lsinfo:
-            l = l.strip()
-            info = l.split()
-            if len(info)>=8:
-                try:
-                    jobid = int(info[0].strip())
-                    runningjobs.append( jobid )
-                except:
-                    continue
-        self.info("Number of running jobs on queue: %d"%(len(runningjobs)))
-
-        # check running jobs
-        query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
-        self._api._cursor.execute(query)
-        results = self._api._cursor.fetchall()
-        self.info("Number of dlcosmictag jobs in running state: %d"%(len(results)))
-        for x in results:
-            run    = int(x[0])
-            subrun = int(x[1])
-            dbdata = x[2]
-            try:
-                if "," in dbdata:
-                    runid = int(dbdata.split(",")[0].split("jobid:")[-1])
-                else:
-                    runid = int(dbdata.split("jobid:")[1].split()[0])
-            except:
-                self.info( "(%d,%d) not parsed"%(run,subrun)+": "+x[-1] )
-                continue
-            self.info( "(%d,%d) run ID %d"%(run,subrun,runid))
-            if runid not in runningjobs:
-                print "(%d,%d) no longer running. updating status,seq to 3,0" % (run,subrun)
-                #slurmjid = int(dbdata.split(":")[1])
-                psacct = os.popen("sacct --format=\"Elapsed\" -j %d"%(runid))
-                data = "jobid:%d,elapsed:%s"%(runid,psacct.readlines()[2].strip())
-                status = ds_status( project = self._project,
-                                    run     = int(x[0]),
-                                    subrun  = int(x[1]),
-                                    seq     = 0,
-                                    data    = data,
-                                    status  = 3 )
-                self.log_status( status )
-
         # check finished jobs
         # if good, then status 4, seq 0
         # if bad, then status 10, seq 0
@@ -288,19 +298,20 @@ srun cd ${WORKDIR} && ./job_dlcosmictag.sh ${CONTAINER_CONVERT} ${CONTAINER_LARF
             subrunmod100 = subrun%100
             subrundiv100 = subrun/100
             dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
-            larcvout   = dbdir + "/" + self._outfile_format%("dlcosmictagoutv2-larcv",run,subrun)
-            larliteout = dbdir + "/" + self._outfile_format%("dlcosmictagoutv2-larlite",run,subrun)
+            dlcosmictag = dbdir + "/" + self._outfile_format%("dlcosmictag-larcv2",run,subrun)
+            flowhits    = dbdir + "/" + self._outfile_format%("larflowhits-larlite",run,subrun)
             jobtag       = 10000*run + subrun
             workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
             
             # Corresponding directories for inside the container
             dbdir_ic = dbdir.replace('90-days-archive','')
-            larcvout_ic = larcvout.replace('90-days-archive','')
-            larliteout_ic = larliteout.replace('90-days-archive','')
-            workdir_ic = workdir.replace('90-days-archive','')
             supera_ic = supera.replace('90-days-archive','')
-
-            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBDLCOSMICTAGDIR,larcvout_ic,larliteout_ic,supera_ic))
+            flowhits_ic = flowhits.replace('90-days-archive','')
+            dlcosmictag_ic = dlcosmictag.replace('90-days-archive','')
+            
+            workdir_ic = workdir.replace('90-days-archive','')
+            
+            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBDLCOSMICTAGDIR,supera_ic,flowhits_ic,dlcosmictag_ic))
             lcheck = pcheck.readlines()
             good = False
             try:
@@ -309,6 +320,13 @@ srun cd ${WORKDIR} && ./job_dlcosmictag.sh ${CONTAINER_CONVERT} ${CONTAINER_LARF
             except:
                 good = False
             self.info("Check job returned with %s state"%(str(good)))
+
+            if False:
+                # for debug
+                for l in lcheck:
+                    print l.strip()
+                # for debug
+                sys.exit(-1)
 
             if good:
                 status = ds_status( project = self._project,
@@ -352,7 +370,7 @@ srun cd ${WORKDIR} && ./job_dlcosmictag.sh ${CONTAINER_CONVERT} ${CONTAINER_LARF
             # we clean out the workdir
             run = int(x[0])
             subrun = int(x[1])
-            workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
+            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
             os.system("rm -rf %s"%(workdir))
             # reset the status
             data = ''
@@ -363,6 +381,33 @@ srun cd ${WORKDIR} && ./job_dlcosmictag.sh ${CONTAINER_CONVERT} ${CONTAINER_LARF
                                 data    = data,
                                 status  = 1 )
             self.log_status(status)
+
+    ## @brief access DB and retrieves runs for which 1st process failed. Clean up.
+    def clean_goodjob_workdir(self):
+
+        # Attempt to connect DB. If failure, abort
+        if not self.connect():
+	    self.error('Cannot connect to DB! Aborting...')
+	    return
+
+        # If resource info is not yet read-in, read in.
+        if self._nruns is None:
+            self.get_resource()
+
+
+        # check running jobs
+        query = "select run,subrun from %s where status=4 order by run,subrun asc limit %d" %( self._project, self._nruns*1000 )
+        self._api._cursor.execute(query)
+        results = self._api._cursor.fetchall()
+
+        # Fetch runs from DB and process for # runs specified for this instance.
+        for x in results:
+            # we clean out the workdir
+            run = int(x[0])
+            subrun = int(x[1])
+            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
+            print "cleaning up: ",workdir
+            os.system("rm -rf %s"%(workdir))
             
 
 # A unit test section
@@ -377,7 +422,7 @@ if __name__ == '__main__':
      
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
-    #if not jobslaunched:
-    #    test_obj.validate()
+    if not jobslaunched:
+        test_obj.validate()
     #    test_obj.error_handle()
-        
+    #test_obj.clean_goodjob_workdir()
