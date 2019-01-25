@@ -301,7 +301,8 @@ srun echo ${WORKDIR} && cd ${WORKDIR} && ./job_dlcosmictag.sh ${CONTAINER_CONVER
             dlcosmictag = dbdir + "/" + self._outfile_format%("dlcosmictag-larcv2",run,subrun)
             flowhits    = dbdir + "/" + self._outfile_format%("larflowhits-larlite",run,subrun)
             jobtag       = 10000*run + subrun
-            workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
+            #workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
+            workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
             
             # Corresponding directories for inside the container
             dbdir_ic = dbdir.replace('90-days-archive','')
@@ -424,5 +425,5 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-    #    test_obj.error_handle()
+        test_obj.error_handle()
     #test_obj.clean_goodjob_workdir()

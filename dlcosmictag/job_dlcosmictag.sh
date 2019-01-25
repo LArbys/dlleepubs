@@ -45,6 +45,7 @@ larcv1_mctruth_path=`echo ${larcv1_supera_path} | sed 's/supera/larcvtruth/g'`
 larcv1_supera=$(basename ${larcv1_supera_path})
 larcv1_mctruth=$(basename ${larcv1_mctruth_path})
 feed_dir=`printf /tmp/feedjobid%d ${SLURM_JOBID}`
+feed_dirp=`printf /tmp/feedjobid%dp ${SLURM_JOBID}`
 
 # larlite files -- we reference network drive locations
 larlite_opreco_ic=`echo ${larcv1_supera_path} | sed 's/supera/opreco/g' | sed 's/90-days-archive//'`
@@ -140,8 +141,8 @@ output_truthcluster_larlite_basename=`echo ${larcv1_supera} | sed 's/supera/trut
 input_flowhits=${output_flowhits_larlite}
 output_truthcluster=${jobdir}/${output_truthcluster_larlite_basename}
 cmd_truthcluster="./dev_truthcluster ${input_flowhits} ${output_truthcluster}"
-echo "TRUTH CLUSTER: ${cmd_truthcluster}"
-singularity exec ${LARBYS_PYTORCH_CONTAINER} bash -c "source ${ROOTSCRIPT} && cd ${larflow_repodir_ic} && source configure.sh && cd postprocessor/cluster && ${cmd_truthcluster}" || exit
+#echo "TRUTH CLUSTER: ${cmd_truthcluster}"
+#singularity exec ${LARBYS_PYTORCH_CONTAINER} bash -c "source ${ROOTSCRIPT} && cd ${larflow_repodir_ic} && source configure.sh && cd postprocessor/cluster && ${cmd_truthcluster}" || exit
 
 # Step 6: Flash-Match
 # --------------------
@@ -149,7 +150,7 @@ output_flashmatch=${jobdir}/output_dev_flashmatch.root
 #input_truthcluster=${WORKDIR_IC}/${output_truthcluster_larlite_basename}
 input_truthcluster=${output_truthcluster}/${output_truthcluster_larlite_basename}
 cmd_flashmatch="./dev_flashmatch ${input_truthcluster} ${larlite_reco2d_ic} ${supera_convert_output} ${larlite_mcinfo_ic} ${output_flashmatch}"
-echo "FLASHMATCH: ${cmd_flashmatch}"
+#echo "FLASHMATCH: ${cmd_flashmatch}"
 #singularity exec ${LARBYS_PYTORCH_CONTAINER} bash -c "source ${ROOTSCRIPT} && cd ${larflow_repodir_ic} && source configure.sh && cd postprocessor/flashmatch && ${cmd_flashmatch}" || exit
 
 # Transfer to output
@@ -169,10 +170,11 @@ scp ${mctruth_convert_output} ${finaloutput_mctruth_larcv2} || exit
 scp ${output_hadd} ${finaloutput_hadd_larcv} || exit
 scp ${output_flowhits_larcv} ${finaloutput_flowhits_larcv} || exit
 scp ${output_flowhits_larlite} ${finaloutput_flowhits_larlite} || exit
-scp ${output_truthcluster} ${finaloutput_truthcluster_larlite} || exit
+#scp ${output_truthcluster} ${finaloutput_truthcluster_larlite} || exit
 
 # clean up
 # ---------
 echo "clean up"
-rm -r ${jobdit}
-rm -r ${feed_dir}*
+rm -rf ${jobdir}
+rm -rf ${feed_dir}
+rm -rf ${feed_dirp}
