@@ -196,16 +196,56 @@ if __name__ == "__main__":
     #           "reco2d":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/bnb5e19_tag1/data/larlite"}
 
 
-    runtable = "mcc9tag2_nueintrinsic_corsika"
-    pathlist_folder="/cluster/tufts/wongjiradlab/larbys/data/mcc9/bnbcorsika_intrinsicnue_tag2"
-    metadatadict = {"larcv":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larcv_wholeview.pkl",
-                    "opreco":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larlite_opreco.pkl",
-                    "backtracker":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larlite_backtracker.pkl",
-                    "larcvtruth":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larcv_mctruth.pkl"}
-    folders = {"larcv":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larcv",
-               "opreco":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larlite",
-               "backtracker":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larlite",
-               "larcvtruth":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larcv"}
+    #runtable = "mcc9tag2_nueintrinsic_corsika"
+    #pathlist_folder="/cluster/tufts/wongjiradlab/larbys/data/mcc9/bnbcorsika_intrinsicnue_tag2"
+    #metadatadict = {"larcv":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larcv_wholeview.pkl",
+    #                "opreco":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larlite_opreco.pkl",
+    #                "backtracker":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larlite_backtracker.pkl",
+    #                "larcvtruth":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_larcv_mctruth.pkl"}
+    #folders = {"larcv":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larcv",
+    #           "opreco":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larlite",
+    #           "backtracker":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larlite",
+    #           "larcvtruth":"/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9tag2_nueintrinsic_corsika/data/larcv"}
+
+    #runtable = "mcc9test_bnb"
+    #pathlist_folder="/cluster/tufts/wongjiradlab/larbys/data/mcc9/data_signoff"
+    #metadatadict = {"larcv":pathlist_folder+"/pathlist_data_bnb_Test_bnb_C1_larcv_wholeview.pkl",
+    #                "opreco":pathlist_folder+"/pathlist_data_bnb_Test_bnb_C1_larlite_opreco.pkl",
+    #                "reco2d":pathlist_folder+"/pathlist_data_bnb_Test_bnb_C1_larlite_reco2d.pkl"}
+    #folders = {"larcv":pathlist_folder+"/data/larcv",
+    #           "opreco":pathlist_folder+"/data/larlite",
+    #           "reco2d":pathlist_folder+"/data/larlite"}
+
+    #runtable = "mcc9jan_bnb5e19"
+    #pathlist_folder="/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9jan_bnb5e19"
+    #metadatadict = {"larcv":pathlist_folder+"/pathlist_data_bnb_optfilter_5e19_mcc9.0_jan_larcv_wholeview.pkl",
+    #                "opreco":pathlist_folder+"/pathlist_data_bnb_optfilter_5e19_mcc9.0_jan_larlite_opreco.pkl",
+    #                "reco2d":pathlist_folder+"/pathlist_data_bnb_optfilter_5e19_mcc9.0_jan_larlite_reco2d.pkl"}
+    #folders = {"larcv":pathlist_folder+"/data/larcv_wholeview",
+    #           "opreco":pathlist_folder+"/data/larlite_opreco",
+    #           "reco2d":pathlist_folder+"/data/larlite_reco2d"}
+
+    #runtable = "mcc9jan_extbnb"
+    #pathlist_folder="/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9jan_extbnb"
+    #metadatadict = {"larcv":pathlist_folder +"/pathlist_data_extbnb_optfilter_dev_mcc9.0_jan_larcv_wholeview.pkl",
+    #                "opreco":pathlist_folder+"/pathlist_data_extbnb_optfilter_dev_mcc9.0_jan_larlite_opreco.pkl",
+    #                "reco2d":pathlist_folder+"/pathlist_data_extbnb_optfilter_dev_mcc9.0_jan_larlite_reco2d.pkl"}
+    #folders = {"larcv":pathlist_folder+"/data/larcv_wholeview",
+    #           "opreco":pathlist_folder+"/data/larlite_opreco",
+    #           "reco2d":pathlist_folder+"/data/larlite_reco2d"}
+
+    runtable = "mcc9mar_bnbcorsika"
+    pathlist_folder="/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9mar_bnbcorsika"
+    metadatadict = {"larcv":pathlist_folder +"/pathlist_prodgenie_bnb_nu_corsika_SCE_genie2_larcv_wholeview.pkl",
+                    "opreco":pathlist_folder+"/pathlist_prodgenie_bnb_nu_corsika_SCE_genie2_larlite_opreco.pkl",
+                    "reco2d":pathlist_folder+"/pathlist_prodgenie_bnb_nu_corsika_SCE_genie2_larlite_backtracker.pkl",
+                    "mcinfo":pathlist_folder+"/pathlist_prodgenie_bnb_nu_corsika_SCE_genie2_larlite_mcinfo.pkl",
+                    "larcvtruth":pathlist_folder+"/pathlist_prodgenie_bnb_nu_corsika_SCE_genie2_larcv_mctruth.pkl"}
+    folders = {"larcv":pathlist_folder+"/data/larcv_wholeview",
+               "opreco":pathlist_folder+"/data/larlite_opreco",
+               "reco2d":pathlist_folder+"/data/larlite_backtracker",
+               "mcinfo":pathlist_folder+"/data/larlite_mcinfo",
+               "larcvtruth":pathlist_folder+"/data/larcv_mctruth"}
 
 
     print "BUILD TABLE FOR ",runtable," USING SAM META-DATA"
