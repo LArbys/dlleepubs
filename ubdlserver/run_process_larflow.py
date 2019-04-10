@@ -169,7 +169,7 @@ class larflow(ds_project_base):
 #SBATCH --job-name=larflowclient_{}
 #SBATCH --output={}/log_larflowclient_{}_{}.txt
 #SBATCH --ntasks=1
-#SBATCH --time=2:00:00
+#SBATCH --time=8:00:00
 #SBATCH --mem-per-cpu=3000
 
 # CONTAINER
@@ -215,7 +215,7 @@ singularity exec $CONTAINER bash -c "$ENVSETUP && cd $UBLARFLOW_BASEDIR && . $UB
             os.system("chmod -R g+rw %s"%(workdir)) # so others can destroy
 
             # for debug. skip submission and changing of status in DB
-            if True:
+            if False:
                 continue
 
             submissionok = False
@@ -263,7 +263,7 @@ singularity exec $CONTAINER bash -c "$ENVSETUP && cd $UBLARFLOW_BASEDIR && . $UB
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep larflowcli" )
+        psinfo = os.popen( "squeue | grep larflowc" )
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -295,7 +295,7 @@ singularity exec $CONTAINER bash -c "$ENVSETUP && cd $UBLARFLOW_BASEDIR && . $UB
                 else:
                     runid = int(dbdata.split("jobid:")[1].split()[0])
             except:
-                self.info( "(%d,%d) not parsed"%(run,subrun)+": "+dbdata )
+                self.info( "(%d,%d) not parsed"%(run,subrun)+": {}".format(dbdata) )
                 continue
             if runid not in runningjobs:
                 self.info("(%d,%d,%s) no longer running. updating status,seq to 3,0"%(run,subrun,self._project))
@@ -321,7 +321,7 @@ singularity exec $CONTAINER bash -c "$ENVSETUP && cd $UBLARFLOW_BASEDIR && . $UB
         query =  "select t1.run,t1.subrun,supera"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
         query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit %d"%(self._nruns * 10)
-        #query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit %d"%(100)
+
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of larflow jobs in finished state: %d"%(len(results)))
@@ -338,13 +338,14 @@ singularity exec $CONTAINER bash -c "$ENVSETUP && cd $UBLARFLOW_BASEDIR && . $UB
             subrunmod100 = subrun%100
             subrundiv100 = subrun/100
             dbdir        = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
-            larflowout   = dbdir + "/" + self._outfile_format%("larflow-noinfill-larcv-%s"%(),run,subrun)
+            larflowout   = dbdir + "/" + self._outfile_format%("larflow-noinfill-larcv-%s"%(self._runtable),run,subrun)
             jobtag       = 10000*run + subrun
             workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)            
 
-            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUB_UBDLSERVER_DIR,larflowout,supera,PUB_UBDLSERVER_DIR))
+            pcheck = os.popen("%s/./singularity_check_larflow_jobs.sh %s %s %s"%(PUB_UBDLSERVER_DIR,larflowout,supera,PUB_UBDLSERVER_DIR))
             lcheck = pcheck.readlines()
             good = False
+
             try:
                 if lcheck[-1].strip()=="True":
                     good = True
@@ -411,13 +412,6 @@ singularity exec $CONTAINER bash -c "$ENVSETUP && cd $UBLARFLOW_BASEDIR && . $UB
     ## @brief access DB and retrieves runs for which 1st process failed. Clean up.
     def modstatus(self):
         # WARNING, USED TO MODIFY SPECIFIC ENTRIES!!
-        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v6_extbnb.txt",'r')
-        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v6_bnb5e19.txt",'r')
-        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_nue_signal_overlay.txt",'r')
-        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_nue_intrinsic_overlay.txt",'r')
-        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_bnb_overlay_p00.txt",'r')
-        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_bnb_overlay_p01.txt",'r')
-        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc9tag1_bnb5e19.txt",'r')
         fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc9tag2_nueintrinsic_corsika.txt",'r')
         lbroken = fbroken.readlines()
         rslist = []
@@ -492,7 +486,7 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
-        #test_obj.validate()
+        test_obj.validate()
         #test_obj.error_handle()
         #test_obj.modstatus() # reset of DB state coupled with file deletion CAUTION!!!
         pass
