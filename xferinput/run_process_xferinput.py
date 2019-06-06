@@ -190,6 +190,7 @@ class xfer_input(ds_project_base):
             outfile = {}
             fstatus = {}
             flist = ["supera","opreco","reco2d","mcinfo"]
+            ok = True
             if self._ismc==0:
                 flist = ["supera","opreco","reco2d"]
                 infile["mcinfo"] = ""
@@ -200,10 +201,13 @@ class xfer_input(ds_project_base):
                     status = 3
                 else:
                     status = 2
+                    ok = False
                 fstatus[f] = status
 
             print "Status of xfer: ",status
-            print fstatus
+            if not ok:
+                print "xfer problem: file statuses=",fstatus
+                status = 10
 
             # Create a status object to be logged to DB (if necessary)
             dbstatus = ds_status( project = self._project,

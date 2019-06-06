@@ -13,8 +13,9 @@
 # 1) network description: dllee_ssnet2018.prototxt
 # 2) network weights: 
 
-SSS_BASEDIR=/cluster/kappa/90-days-archive/wongjiradlab/larbys/ssnetserver
-SSS_MODELDIR=/cluster/kappa/90-days-archive/wongjiradlab/larbys/ssnet_models/v1/
+SSS_BASEDIR=/cluster/tufts/wongjiradlab/larbys/ssnetserver
+#SSS_BASEDIR=/usr/local/ssnetserver
+SSS_MODELDIR=/cluster/tufts/wongjiradlab/larbys/ssnet_models/v1/
 
 rsync -av --progress ${SSS_BASEDIR}/dllee_ssnet2018.prototxt /tmp/
 rsync -av --progress ${SSS_MODELDIR}/*.caffemodel /tmp/

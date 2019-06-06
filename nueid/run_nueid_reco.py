@@ -32,14 +32,14 @@ class nueid_reco(ds_project_base):
         self._container       = ""
         self._run_script      = ""
         self._sub_script      = ""
-        self._vtx_runtag      = ""
-        self._out_runtag      = ""
-        self._script          = ""
         self._nueidcfg        = ""
         self._shrcfg          = ""
         self._shranacfg       = ""
         self._pidcfg          = ""
         self._flashcfg        = ""
+        self._vtx_runtag      = ""
+        self._out_runtag      = ""
+        self._script          = ""
         self._max_jobs        = None
         self._usenames        = ""
         self._ismc            = ""
@@ -50,7 +50,7 @@ class nueid_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(5000)
+        self._nruns            = int(20)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -69,10 +69,10 @@ class nueid_reco(ds_project_base):
         self._flashcfg         = os.path.join(CFG_DIR,"flash",str(resource['FLASHCFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = int(1e4)
+        self._max_jobs         = int(100)
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
-        
+
         if self._usenames == 1:
             self._names = ["vgenty01",
                            "cbarne06",
@@ -136,7 +136,6 @@ class nueid_reco(ds_project_base):
         query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
 
         # query += " where t1.status=1 order by run, subrun desc limit %d" % (nremaining) 
-
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         ijob = 0
@@ -148,7 +147,8 @@ class nueid_reco(ds_project_base):
             _     , inputdbdir0,           _ = cast_run_subrun(run,subrun,              "","", self._input_dir1,""           )
             _     ,           _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"",               "",self._out_dir)
             jobtag,           _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"",               "",self._out_dir)
-                        
+            
+            
             # prepare work dir
             self.info("Making work directory")
             workdir      = os.path.join(self._grid_workdir,"nue",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
@@ -160,8 +160,14 @@ class nueid_reco(ds_project_base):
             #
             # prepare input lists
             #
+            supera_input  = os.path.join(inputdbdir0,self._file_format%("supera",run,subrun))
+            supera_input += ".root"
+
             ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetout-larcv",run,subrun))
-            ssnet_input += ".root"
+            ssnet_input  += ".root"
+
+            tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
+            tagger_input += ".root"
 
             opreco_input  = os.path.join(inputdbdir0,self._file_format%("opreco",run,subrun))
             opreco_input += ".root"
@@ -169,39 +175,38 @@ class nueid_reco(ds_project_base):
             reco2dinput  = os.path.join(inputdbdir0,self._file_format%("reco2d",run,subrun))
             reco2dinput += ".root"
 
-            mcinfoinput  = os.path.join(inputdbdir0,self._file_format%("mcinfo",run,subrun))
-            mcinfoinput += ".root"
-
             vertexout_input = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
+
+            # supera
+            inputlist_f = open(os.path.join(inputlistdir,"supera_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % supera_input)
+            inputlist_f.close()
+
+            # .replace("90-days-archive","")
 
             # ssnet
             inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % ssnet_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % ssnet_input)
+            inputlist_f.close()
+
+            # tagger
+            inputlist_f = open(os.path.join(inputlistdir,"tagger_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % tagger_input)
             inputlist_f.close()
             
             # opreco
             inputlist_f = open(os.path.join(inputlistdir,"opreco_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % opreco_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % opreco_input)
             inputlist_f.close()
 
             # vertex
             inputlist_f = open(os.path.join(inputlistdir,"vertex_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % vertexout_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % vertexout_input)
             inputlist_f.close()
 
             # reco2d
             inputlist_f = open(os.path.join(inputlistdir,"reco2d_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % reco2dinput.replace("90-days-archive",""))
-            inputlist_f.close()
-
-            # larlite
-            inputlist_f = open(os.path.join(inputlistdir,"mcinfo_inputlist_%05d.txt"% int(jobtag)),"w+")
-            if self._ismc == 1:
-                inputlist_f.write("%s" % mcinfoinput.replace("90-days-archive",""))
-            elif self._ismc == 0:
-                inputlist_f.write("INVALID")
-            else:
-                raise Exception("self._ismc is invalid")
+            inputlist_f.write("%s" % reco2dinput)
             inputlist_f.close()
 
             # runlist
@@ -264,10 +269,10 @@ class nueid_reco(ds_project_base):
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
-            sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("EEE",workdir)
             sub_data=sub_data.replace("FFF",outdbdir)
             sub_data=sub_data.replace("GGG",os.path.basename(run_script))
-            sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("HHH",outdbdir)
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
@@ -478,5 +483,5 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    # test_obj.error_handle()
+    test_obj.error_handle()
     

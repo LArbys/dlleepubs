@@ -72,7 +72,7 @@ class nueid_reco(ds_project_base):
         self._max_jobs         = int(100)
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
-        
+
         if self._usenames == 1:
             self._names = ["vgenty01",
                            "cbarne06",
@@ -181,32 +181,34 @@ class nueid_reco(ds_project_base):
 
             # supera
             inputlist_f = open(os.path.join(inputlistdir,"supera_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % supera_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % supera_input)
             inputlist_f.close()
+
+            # .replace("90-days-archive","")
 
             # ssnet
             inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % ssnet_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % ssnet_input)
             inputlist_f.close()
 
             # tagger
             inputlist_f = open(os.path.join(inputlistdir,"tagger_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % tagger_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % tagger_input)
             inputlist_f.close()
             
             # opreco
             inputlist_f = open(os.path.join(inputlistdir,"opreco_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % opreco_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % opreco_input)
             inputlist_f.close()
 
             # vertex
             inputlist_f = open(os.path.join(inputlistdir,"vertex_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % vertexout_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % vertexout_input)
             inputlist_f.close()
 
             # reco2d
             inputlist_f = open(os.path.join(inputlistdir,"reco2d_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % reco2dinput.replace("90-days-archive",""))
+            inputlist_f.write("%s" % reco2dinput)
             inputlist_f.close()
 
             # runlist
@@ -269,10 +271,10 @@ class nueid_reco(ds_project_base):
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
-            sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("EEE",workdir)
             sub_data=sub_data.replace("FFF",outdbdir)
             sub_data=sub_data.replace("GGG",os.path.basename(run_script))
-            sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("HHH",outdbdir)
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
@@ -481,7 +483,7 @@ if __name__ == '__main__':
 
     test_obj = nueid_reco(sys.argv[1])
     jobslaunched = False
-    jobslaunched = test_obj.process_newruns()
+    #jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    # test_obj.error_handle()
+    #test_obj.error_handle()
     

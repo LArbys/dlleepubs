@@ -50,7 +50,7 @@ class nueid_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns            = int(50)
+        self._nruns            = int(20)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -61,15 +61,17 @@ class nueid_reco(ds_project_base):
         self._container        = str(resource['CONTAINER'])
         self._run_script       = os.path.join(SCRIPT_DIR,str(resource['RUN_SCRIPT']))
         self._sub_script       = os.path.join(SCRIPT_DIR,"submit_pubs_job.sh")
-        self._nueidcfg         = os.path.join(CFG_DIR,"nueid",str(resource['NUEIDCFG']))
-        self._michelidcfg      = os.path.join(CFG_DIR,"nueid",str(resource['MICHELIDCFG']))
-        self._shrcfg           = os.path.join(CFG_DIR,"shower",str(resource['SHRCFG']))
-        self._shranacfg        = os.path.join(CFG_DIR,"truth",str(resource['SHRANACFG']))
-        self._pidcfg           = os.path.join(CFG_DIR,"network",str(resource['PIDCFG']))
-        self._flashcfg         = os.path.join(CFG_DIR,"flash",str(resource['FLASHCFG']))
+        #self._nueidcfg         = os.path.join(CFG_DIR,"nueid",str(resource['NUEIDCFG']))
+        #self._michelidcfg      = os.path.join(CFG_DIR,"nueid",str(resource['MICHELIDCFG']))
+        #self._shrcfg           = os.path.join(CFG_DIR,"shower",str(resource['SHRCFG']))
+        #self._shranacfg        = os.path.join(CFG_DIR,"truth",str(resource['SHRANACFG']))
+        #self._pidcfg           = os.path.join(CFG_DIR,"network",str(resource['PIDCFG']))
+        self._mrcnncfg         = os.path.join(CFG_DIR,"network",str(resource['MRCNNCFG']))
+        #self._flashcfg         = os.path.join(CFG_DIR,"flash",str(resource['FLASHCFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
+        self._nueid_runtag     = str(resource['NUEID_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = int(1e3)
+        self._max_jobs         = int(200)
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
@@ -78,7 +80,7 @@ class nueid_reco(ds_project_base):
                            "cbarne06",
                            "jmoon02",
                            "ran01",
-                           #"lyates01",
+                           "lyates01",
                            "ahourl01",
                            "adiaz09"]
 
@@ -146,6 +148,7 @@ class nueid_reco(ds_project_base):
             subrun = int(x[1])
             _     , inputdbdir0,           _ = cast_run_subrun(run,subrun,              "","", self._input_dir1,""           )
             _     ,           _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"",               "",self._out_dir)
+            _     ,           _, inputdbdir3 = cast_run_subrun(run,subrun,self._nueid_runtag,"",               "",self._out_dir)
             jobtag,           _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"",               "",self._out_dir)
             
             
@@ -163,12 +166,12 @@ class nueid_reco(ds_project_base):
             supera_input  = os.path.join(inputdbdir0,self._file_format%("supera",run,subrun))
             supera_input += ".root"
 
-            ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserverout-larcv",run,subrun))
-            #ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserveroutv2-larcv",run,subrun))
+            #ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserverout-larcv",run,subrun))
+            ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserveroutv2-larcv",run,subrun))
             ssnet_input  += ".root"
 
-            tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
-            #tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggeroutv2-larcv",run,subrun))
+            #tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
+            tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggeroutv2-larcv",run,subrun))
             tagger_input += ".root"
 
             opreco_input  = os.path.join(inputdbdir0,self._file_format%("opreco",run,subrun))
@@ -179,34 +182,48 @@ class nueid_reco(ds_project_base):
 
             vertexout_input = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
 
+            nueid_input     = os.path.join(inputdbdir3,"nueid_lcv_out_%d.root" % jobtag)
+
             # supera
             inputlist_f = open(os.path.join(inputlistdir,"supera_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % supera_input.replace("90-days-archive",""))
+            #inputlist_f.write("%s" % supera_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % supera_input)
             inputlist_f.close()
 
             # ssnet
             inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % ssnet_input.replace("90-days-archive",""))
+            #inputlist_f.write("%s" % ssnet_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % ssnet_input)
             inputlist_f.close()
 
             # tagger
             inputlist_f = open(os.path.join(inputlistdir,"tagger_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % tagger_input.replace("90-days-archive",""))
+            #inputlist_f.write("%s" % tagger_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % tagger_input)
             inputlist_f.close()
             
             # opreco
             inputlist_f = open(os.path.join(inputlistdir,"opreco_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % opreco_input.replace("90-days-archive",""))
+            #inputlist_f.write("%s" % opreco_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % opreco_input)
             inputlist_f.close()
 
             # vertex
             inputlist_f = open(os.path.join(inputlistdir,"vertex_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % vertexout_input.replace("90-days-archive",""))
+            #inputlist_f.write("%s" % vertexout_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % vertexout_input)
+            inputlist_f.close()
+
+            # nueid
+            inputlist_f = open(os.path.join(inputlistdir,"nueid_inputlist_%05d.txt"% int(jobtag)),"w+")
+            #inputlist_f.write("%s" % nueid_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % nueid_input)
             inputlist_f.close()
 
             # reco2d
             inputlist_f = open(os.path.join(inputlistdir,"reco2d_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % reco2dinput.replace("90-days-archive",""))
+            #inputlist_f.write("%s" % reco2dinput.replace("90-days-archive",""))
+            inputlist_f.write("%s" % reco2dinput)
             inputlist_f.close()
 
             # runlist
@@ -229,32 +246,36 @@ class nueid_reco(ds_project_base):
             stat,out = commands.getstatusoutput("scp %s %s" % (self._run_script,workdir))
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
 
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._nueidcfg,workdir))
-            nueidcfg = os.path.join(workdir,os.path.basename(self._nueidcfg))
+            #stat,out = commands.getstatusoutput("scp -r %s %s" % (self._nueidcfg,workdir))
+            #nueidcfg = os.path.join(workdir,os.path.basename(self._nueidcfg))
 
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._michelidcfg,workdir))
-            michelidcfg = os.path.join(workdir,os.path.basename(self._michelidcfg))
+            #stat,out = commands.getstatusoutput("scp -r %s %s" % (self._michelidcfg,workdir))
+            #michelidcfg = os.path.join(workdir,os.path.basename(self._michelidcfg))
 
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._shrcfg,workdir))
-            shrcfg = os.path.join(workdir,os.path.basename(self._shrcfg))
+            #stat,out = commands.getstatusoutput("scp -r %s %s" % (self._shrcfg,workdir))
+            #shrcfg = os.path.join(workdir,os.path.basename(self._shrcfg))
 
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._shranacfg,workdir))
-            shranacfg = os.path.join(workdir,os.path.basename(self._shranacfg))
+            #stat,out = commands.getstatusoutput("scp -r %s %s" % (self._shranacfg,workdir))
+            #shranacfg = os.path.join(workdir,os.path.basename(self._shranacfg))
 
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._pidcfg,workdir))
-            pidcfg = os.path.join(workdir,os.path.basename(self._pidcfg))
+            #stat,out = commands.getstatusoutput("scp -r %s %s" % (self._pidcfg,workdir))
+            #pidcfg = os.path.join(workdir,os.path.basename(self._pidcfg))
 
-            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._flashcfg,workdir))
-            flashcfg = os.path.join(workdir,os.path.basename(self._flashcfg))
+            stat,out = commands.getstatusoutput("scp -r %s %s" % (self._mrcnncfg,workdir))
+            mrcnncfg = os.path.join(workdir,os.path.basename(self._mrcnncfg))
+
+            #stat,out = commands.getstatusoutput("scp -r %s %s" % (self._flashcfg,workdir))
+            #flashcfg = os.path.join(workdir,os.path.basename(self._flashcfg))
 
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
-            run_data = run_data.replace("KKK",os.path.basename(shrcfg))
-            run_data = run_data.replace("RRR",os.path.basename(shranacfg))
-            run_data = run_data.replace("EEE",os.path.basename(pidcfg))
-            run_data = run_data.replace("FFF",os.path.basename(nueidcfg))
-            run_data = run_data.replace("GGG",os.path.basename(flashcfg))
-            run_data = run_data.replace("HHH",os.path.basename(michelidcfg))
+            #run_data = run_data.replace("KKK",os.path.basename(shrcfg))
+            #run_data = run_data.replace("RRR",os.path.basename(shranacfg))
+            #run_data = run_data.replace("EEE",os.path.basename(pidcfg))
+            run_data = run_data.replace("EEE",os.path.basename(mrcnncfg))
+            #run_data = run_data.replace("FFF",os.path.basename(nueidcfg))
+            #run_data = run_data.replace("GGG",os.path.basename(flashcfg))
+            #run_data = run_data.replace("HHH",os.path.basename(michelidcfg))
             run_data = run_data.replace("BBB",str(self._ismc))
             with open(run_script,"w") as f: f.write(run_data)
 
@@ -269,10 +290,12 @@ class nueid_reco(ds_project_base):
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
-            sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
+            #sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("EEE",workdir)
             sub_data=sub_data.replace("FFF",outdbdir)
             sub_data=sub_data.replace("GGG",os.path.basename(run_script))
-            sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
+            #sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("HHH",outdbdir)
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
@@ -416,7 +439,7 @@ class nueid_reco(ds_project_base):
                                                           self._out_runtag,self._file_format,
                                                           self._input_dir1,self._out_dir)
             # link
-            ana = os.path.join(outdbdir,"nueid_comb_df_%d.pkl" % jobtag)
+            ana = os.path.join(outdbdir,"maskrcnn_out_%d.root" % jobtag)
             success = os.path.exists(ana)
 
             if success == True:
@@ -483,5 +506,5 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    #test_obj.error_handle()
+    test_obj.error_handle()
     

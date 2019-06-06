@@ -123,6 +123,7 @@ class vertex_reco(ds_project_base):
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project, self._filetable)
         query += " join %s t3 on (t1.run=t3.run and t1.subrun=t3.subrun)" % (self._parent_project)
         query += " where t1.status=1 and t3.status=4 order by run, subrun desc limit %d" % (nremaining) 
+        self.info(query)
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         ijob = 0
@@ -164,15 +165,15 @@ class vertex_reco(ds_project_base):
             taggerinput += ".root"
 
             inputlist_f = open(os.path.join(inputlistdir,"supera_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % superainput.replace("90-days-archive",""))
+            inputlist_f.write("%s" % superainput)#.replace("90-days-archive",""))
             inputlist_f.close()
 
             inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % ssnetinput.replace("90-days-archive",""))
+            inputlist_f.write("%s" % ssnetinput)#.replace("90-days-archive",""))
             inputlist_f.close()
 
             inputlist_f = open(os.path.join(inputlistdir,"tagger_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % taggerinput.replace("90-days-archive",""))
+            inputlist_f.write("%s" % taggerinput)#.replace("90-days-archive",""))
             inputlist_f.close()
 
             # runlist
@@ -217,10 +218,12 @@ class vertex_reco(ds_project_base):
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
-            sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
+            #sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("EEE",workdir)
             sub_data=sub_data.replace("FFF",outdbdir)
             sub_data=sub_data.replace("GGG",os.path.basename(run_script))
-            sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
+            #sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("HHH",outdbdir)
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
@@ -359,10 +362,12 @@ class vertex_reco(ds_project_base):
                                                          self._runtag,self._file_format,
                                                          self._input_dir,self._out_dir)
             # link
-            vertex_pkl1    = os.path.join(outdbdir,"ana_comb_df_%d.pkl" % jobtag)
-            self.info("verify exists=%s" % vertex_pkl1)
+            #vertex_pkl1    = os.path.join(outdbdir,"ana_comb_df_%d.pkl" % jobtag)
+            #self.info("verify exists=%s" % vertex_pkl1)
+            vertex_out = os.path.join(outdbdir, "vertexout_%d.root" % jobtag)
 
-            success = os.path.exists(vertex_pkl1)
+            #success = os.path.exists(vertex_pkl1)
+            success = os.path.exists(vertex_out)
 
             if success == True:
                 self.info("status of job for (%d,%d) is good"%(run,subrun))
@@ -427,4 +432,4 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    # test_obj.error_handle()
+    #test_obj.error_handle()

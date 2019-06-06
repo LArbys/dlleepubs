@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-#SBATCH --job-name=prepflist_mcc9
-#SBATCH --output=log_prepflist_mcc9.txt
+#SBATCH --job-name=prepflist
+#SBATCH --output=log_prepflist.txt
 #SBATCH --ntasks=1
 #SBATCH --time=480:00
 #SBATCH --mem-per-cpu=2000
@@ -24,9 +24,9 @@
 #LARLITEDIR=/cluster/kappa/90-days-archive/wongjiradlab/vgenty/michel_data/larlite
 #SUPERATRUTH=
 
-#SUPERADIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/detsys/noiseAmpUp/larcv
-#LARLITEDIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/detsys/noiseAmpUp/larlite
-#SUPERATRUTH=/cluster/kappa/wongjiradlab/lyates01/dl_production/detsys/noiseAmpUp/larcv_mctruth
+SUPERADIR=/cluster/tufts/wongjiradlab/lyates01/sharing/daviosthings/mcc9_v13_nueintrinsics/larcv
+LARLITEDIR=/cluster/tufts/wongjiradlab/lyates01/sharing/daviosthings/mcc9_v13_nueintrinsics/larlite
+SUPERATRUTH=/cluster/tufts/wongjiradlab/lyates01/sharing/daviosthings/mcc9_v13_nueintrinsics/larcv_mctruth
 
 #SUPERADIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/run1ext/larcv
 #LARLITEDIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/run1ext/larlite
@@ -35,9 +35,10 @@
 #SUPERADIR=/cluster/kappa/wongjiradlab/larbys/data/db/numi_kdar_only_sample_input_files/LArCV/
 #LARLITEDIR=/cluster/kappa/wongjiradlab/larbys/data/db/numi_kdar_only_sample_input_files/LArLITE/
 #SUPERATRUTH=/cluster/kappa/wongjiradlab/larbys/data/db/numi_kdar_only_sample_input_files/LArCV_Truth/
-SUPERADIR=/cluster/kappa/wongjiradlab/larbys/data/mcc9/beta1_extbnb/larcv
-LARLITEDIR=/cluster/kappa/wongjiradlab/larbys/data/mcc9/beta1_extbnb/larlite
-SUPERATRUTH=
+
+#SUPERADIR=/cluster/kappa/wongjiradlab/larbys/data/mcc9/beta1_extbnb/larcv
+#LARLITEDIR=/cluster/kappa/wongjiradlab/larbys/data/mcc9/beta1_extbnb/larlite
+#SUPERATRUTH=
 
 
 srun ./run_singularity_extract_runlist.sh $SUPERADIR $LARLITEDIR $SUPERATRUTH

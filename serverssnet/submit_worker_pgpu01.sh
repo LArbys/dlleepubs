@@ -7,12 +7,12 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --partition gpu
 #SBATCH --nodelist=pgpu01
-#SBATCH --array=0-5
+#SBATCH --array=3-4
 
-CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
+CONTAINER=/cluster/tufts/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
 #SSS_BASEDIR=/usr/local/ssnetserver
-SSS_BASEDIR=/cluster/kappa/wongjiradlab/larbys/ssnetserver
-WORKDIR=/cluster/kappa/wongjiradlab/larbys/pubs/dlleepubs/serverssnet
+SSS_BASEDIR=/cluster/tufts/wongjiradlab/larbys/ssnetserver
+WORKDIR=/cluster/tufts/wongjiradlab/larbys/pubs/dlleepubs/serverssnet
 
 # IP ADDRESSES OF BROKER
 BROKER=10.246.81.73 # PGPU03
@@ -22,7 +22,7 @@ PORT=5560
 
 # GPU LIST
 #GPU_ASSIGNMENTS=/cluster/kappa/wongjiradlab/twongj01/ssnetserver/grid/tufts_pgpu01_assignments.txt
-GPU_ASSIGNMENTS=/cluster/kappa/wongjiradlab/larbys/pubs/dlleepubs/serverssnet/tufts_pgpu01_assignments.txt
+GPU_ASSIGNMENTS=/cluster/tufts/wongjiradlab/larbys/pubs/dlleepubs/serverssnet/tufts_pgpu01_assignments.txt
 WORKEROFFSET=100
 
 module load singularity

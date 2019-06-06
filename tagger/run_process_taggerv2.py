@@ -56,7 +56,7 @@ class tagger(ds_project_base):
         self._tagger_cfg     = resource['TAGGERCFG']
         self._container      = resource['CONTAINER']
         #self._max_jobs       = int(resource['MAXJOBS'])
-        self._max_jobs       = 50
+        self._max_jobs       = 130
         self._ismc           = int(resource['ISMC'])
 
     ## @brief access DB and retrieves new runs and process
@@ -119,25 +119,18 @@ class tagger(ds_project_base):
             workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
             inputlistdir = workdir + "/inputlists"
 
-            # Corresponding directories for inside the container
-            dbdir_ic = dbdir.replace('90-days-archive','')
-            larcvout_ic = larcvout.replace('90-days-archive','')
-            larliteout_ic = larliteout.replace('90-days-archive','')
-            workdir_ic = workdir.replace('90-days-archive','')
-            inputlistdir_ic = inputlistdir.replace('90-days-archive','')
-
             os.system("mkdir -p %s"%(inputlistdir))
             larcv_input   = open('%s/input_larcv_%09d.txt'%(inputlistdir,jobtag),'w')
             larlite_input = open('%s/input_larlite_%09d.txt'%(inputlistdir,jobtag),'w')
             rerunlist     = open('%s/rerunlist.txt'%(workdir),'w')
-            print >> larcv_input,x[2].replace('90-days-archive','')
-            print >> larlite_input,x[3].replace('90-days-archive','')
+            print >> larcv_input,x[2]
+            print >> larlite_input,x[3]
             if self._ismc==1:
                 mcinfo = os.path.realpath(x[4])
                 reco2d = os.path.realpath(x[5])
                 # for sample using backtracker this is in reco2d file
-                #print >> larlite_input,mcinfo.replace('90-days-archive','')
-                print >> larlite_input,reco2d.replace('90-days-archive','')
+                #print >> larlite_input
+                print >> larlite_input,reco2d
             print >> rerunlist,jobtag
             larcv_input.close()
             larlite_input.close()
@@ -151,8 +144,8 @@ class tagger(ds_project_base):
 #SBATCH --job-name=tagger_%d
 #SBATCH --output=%s/log_tagger_%d_%d.txt
 #SBATCH --ntasks=1
-#SBATCH --time=480:00
-#SBATCH --mem-per-cpu=4000
+#SBATCH --time=1440:00
+#SBATCH --mem-per-cpu=8000
 
 WORKDIR=%s
 CONTAINER=%s
@@ -165,7 +158,7 @@ LARLITE_OUTFILENAME=%s
 module load singularity
 srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpubs_job.sh ${CONFIG} ${INPUTLISTDIR} ${LARCV_OUTFILENAME} ${LARLITE_OUTFILENAME} ${JOBIDLIST}"
 """
-            submit = submitscript%(jobtag,workdir,run,subrun,workdir_ic,self._container,os.path.basename(self._tagger_cfg),larcvout_ic,larliteout_ic)
+            submit = submitscript%(jobtag,workdir,run,subrun,workdir,self._container,os.path.basename(self._tagger_cfg),larcvout,larliteout)
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
@@ -287,14 +280,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
             jobtag       = 10000*run + subrun
             workdir      = self._grid_workdir + "/%s/%s_%04d_%03d"%(self._project,self._project,run,subrun)
             
-            # Corresponding directories for inside the container
-            dbdir_ic = dbdir.replace('90-days-archive','')
-            larcvout_ic = larcvout.replace('90-days-archive','')
-            larliteout_ic = larliteout.replace('90-days-archive','')
-            workdir_ic = workdir.replace('90-days-archive','')
-            supera_ic = supera.replace('90-days-archive','')
-
-            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBTAGGERDIR,larcvout_ic,larliteout_ic,supera_ic))
+            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBTAGGERDIR,larcvout,larliteout,supera))
             lcheck = pcheck.readlines()
             good = False
             try:
@@ -337,7 +323,7 @@ srun singularity exec ${CONTAINER} bash -c "cd ${WORKDIR} && source run_taggerpu
 
 
         # check running jobs
-        query = "select run,subrun from %s where status=10 order by run,subrun asc limit %d" %( self._project, self._nruns*1000 )
+        query = "select run,subrun from %s where status=10 order by run,subrun asc limit %d" %( self._project, self._nruns )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
 
@@ -373,5 +359,5 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
-        # test_obj.error_handle()
+        #test_obj.error_handle()
         

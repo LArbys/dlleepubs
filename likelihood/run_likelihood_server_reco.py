@@ -188,50 +188,50 @@ class likelihood_reco(ds_project_base):
 
             # tagger_lcv_input
             inputlist_f = open(os.path.join(inputlistdir,"tagger_lcv_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(tagger_lcv_input).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(tagger_lcv_input))
             inputlist_f.close()
 
             # tagger_ll_input
             inputlist_f = open(os.path.join(inputlistdir,"tagger_ll_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(tagger_ll_input).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(tagger_ll_input))
             inputlist_f.close()
 
             # vertexana
             inputlist_f = open(os.path.join(inputlistdir,"vertex_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(vertexana_input).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(vertexana_input))
             inputlist_f.close()
 
             # vertexout
             inputlist_f = open(os.path.join(inputlistdir,"vertex_out_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(vertexout_input).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(vertexout_input))
             inputlist_f.close()
 
             # tracker ana
             inputlist_f = open(os.path.join(inputlistdir,"tracker_ana_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(trackerana_input).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(trackerana_input))
             inputlist_f.close()
             
             # mcinfo
             inputlist_f = open(os.path.join(inputlistdir,"mcinfo_inputlist_%05d.txt"% int(jobtag)),"w+")
             if self._is_mc == 1:
-                inputlist_f.write("%s" % os.path.realpath(mcinfoinput).replace("90-days-archive",""))
+                inputlist_f.write("%s" % os.path.realpath(mcinfoinput))
             else:
                 inputlist_f.write("%s" % "INVALID")
             inputlist_f.close()
 
             # opreco
             inputlist_f = open(os.path.join(inputlistdir,"opreco_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(oprecoinput).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(oprecoinput))
             inputlist_f.close()
 
             # vertex pkl
             inputlist_f = open(os.path.join(inputlistdir,"vertex_pkl_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(vertexpklinput).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(vertexpklinput))
             inputlist_f.close()
 
             # nueid pkl
             inputlist_f = open(os.path.join(inputlistdir,"nueid_pkl_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(nueidpklinput).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(nueidpklinput))
             inputlist_f.close()
 
             # runlist
@@ -253,12 +253,12 @@ class likelihood_reco(ds_project_base):
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
 
             # copy configs over
-            precut_dir = "/cluster/kappa/90-days-archive/wongjiradlab/larbys/pubs/dlleepubs/downstream/Production_Config/cfg/precuts/"
+            precut_dir = "/cluster/tufts/wongjiradlab/larbys/pubs/dlleepubs/downstream/Production_Config/cfg/precuts/"
             self._precut_cfg = os.path.join(precut_dir,self._precut_cfg)
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._precut_cfg,workdir))
             precut_cfg = os.path.join(workdir,os.path.basename(self._precut_cfg))
 
-            nue_cut_dir = "/cluster/kappa/90-days-archive/wongjiradlab/larbys/pubs/dlleepubs/downstream/Production_Config/cfg/postcuts/"
+            nue_cut_dir = "/cluster/tufts/wongjiradlab/larbys/pubs/dlleepubs/downstream/Production_Config/cfg/postcuts/"
             self._nue_cuts = os.path.join(nue_cut_dir,self._nue_cuts)
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._nue_cuts,workdir))
             nue_cuts = os.path.join(workdir,os.path.basename(self._nue_cuts))
@@ -279,10 +279,10 @@ class likelihood_reco(ds_project_base):
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
-            sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("EEE",workdir)
             sub_data=sub_data.replace("FFF",outdbdir)
             sub_data=sub_data.replace("GGG",os.path.basename(run_script))
-            sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("HHH",outdbdir)
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
@@ -491,5 +491,5 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    test_obj.error_handle()
+    #test_obj.error_handle()
 

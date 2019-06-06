@@ -46,7 +46,7 @@ class trackerreco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(1e3)
+        self._nruns            = 5
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -61,7 +61,7 @@ class trackerreco(ds_project_base):
         self._trkanacfg        = os.path.join(CFG_DIR,"truth",str(resource['TRKANACFG']))
         self._vtx_runtag       = str(resource['VTX_RUNTAG'])
         self._out_runtag       = str(resource['OUT_RUNTAG'])
-        self._max_jobs         = int(2e3)
+        self._max_jobs         = 500
         self._ismc             = int(str(resource['ISMC']))
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         
@@ -70,7 +70,7 @@ class trackerreco(ds_project_base):
                            "cbarne06",
                            "jmoon02",
                            "ran01",
-                           "lyates01",
+                          "lyates01",
                            "ahourl01",
                            "adiaz09"]
             
@@ -137,7 +137,6 @@ class trackerreco(ds_project_base):
             _     ,           _, inputdbdir1 = cast_run_subrun(run,subrun,self._vtx_runtag,"",               "",self._out_dir)
             jobtag,           _, outdbdir    = cast_run_subrun(run,subrun,self._out_runtag,"",               "",self._out_dir)
             
-            
             # prepare work dir
             self.info("Making work directory")
             workdir      = os.path.join(self._grid_workdir,"tracker",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
@@ -149,8 +148,14 @@ class trackerreco(ds_project_base):
             #
             # prepare input lists
             #
-            ssnet_input     = os.path.join(inputdbdir0,self._file_format%("ssnetout-larcv",run,subrun))
-            ssnet_input    += ".root"
+            supera_input  = os.path.join(inputdbdir0,self._file_format%("supera",run,subrun))
+            supera_input += ".root"
+
+            ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetout-larcv",run,subrun))
+            ssnet_input  += ".root"
+
+            tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
+            tagger_input += ".root"
 
             reco2dinput = os.path.join(inputdbdir0,self._file_format%("reco2d",run,subrun))
             reco2dinput+= ".root"
@@ -160,24 +165,37 @@ class trackerreco(ds_project_base):
 
             vertexout_input = os.path.join(inputdbdir1,"vertexout_%d.root" % jobtag)
 
+            # supera
+            inputlist_f = open(os.path.join(inputlistdir,"supera_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(supera_input))
+            inputlist_f.close()
+
+ 
             # ssnet
             inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % ssnet_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(ssnet_input))
+            inputlist_f.close()
+
+            # tagger
+            inputlist_f = open(os.path.join(inputlistdir,"tagger_inputlist_%05d.txt"% int(jobtag)),"w+")
+            inputlist_f.write("%s" % os.path.realpath(tagger_input))
             inputlist_f.close()
             
             # vertex
             inputlist_f = open(os.path.join(inputlistdir,"vertex_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % vertexout_input.replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(vertexout_input))
             inputlist_f.close()
 
             # larlite
             inputlist_f = open(os.path.join(inputlistdir,"reco2d_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % reco2dinput.replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(reco2dinput))
             inputlist_f.close();
+
+            print "test", os.path.realpath(mcinfoinput)
 
             inputlist_f = open(os.path.join(inputlistdir,"mcinfo_inputlist_%05d.txt"% int(jobtag)),"w+")
             if self._ismc == 1:
-                inputlist_f.write("%s" % mcinfoinput.replace("90-days-archive",""))
+                inputlist_f.write("%s" % os.path.realpath(mcinfoinput))
             elif self._ismc == 0:
                 inputlist_f.write("INVALID")
             else:
@@ -203,6 +221,7 @@ class trackerreco(ds_project_base):
 
             # copy reco job template over
             stat,out = commands.getstatusoutput("scp %s %s" % (self._run_script,workdir))
+            print self._run_script
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
 
             # copy configs over
@@ -229,10 +248,11 @@ class trackerreco(ds_project_base):
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
-            sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("EEE",workdir)
+
             sub_data=sub_data.replace("FFF",outdbdir)
             sub_data=sub_data.replace("GGG",os.path.basename(run_script))
-            sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("HHH",outdbdir)
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
@@ -337,6 +357,7 @@ class trackerreco(ds_project_base):
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of trackerreco jobs in running state: %d"%(len(results)))
+
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -423,10 +444,10 @@ class trackerreco(ds_project_base):
             subrun  = int(x[1])
             workdir = os.path.join(self._grid_workdir,"tracker",self._out_runtag,"%s_%04d_%03d"%(self._project,run,subrun))
             self.info("deleting... %s" % workdir)
-            #SS="/cluster/kappa/90-days-archive/wongjiradlab/bin/grm %s"%(workdir)
             SS="rm -rf %s" % workdir
             self.info(SS)
             os.system(SS)
+
             # reset the status
             data = ''
             status = ds_status( project = self._project,
@@ -445,4 +466,4 @@ if __name__ == '__main__':
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
     test_obj.error_handle()
-
+    

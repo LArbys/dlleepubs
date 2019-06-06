@@ -62,8 +62,8 @@ class larflow(ds_project_base):
 
         self._nruns    = int(resource['NRUNS'])
         self._max_jobs = int(resource['MAXJOBS'])
-        self._nruns    = 4
-        self._max_jobs = 4
+        self._nruns    = 1
+        self._max_jobs = 1
 
         self._pgpu03_max_nworkers  = 6*3 #18
         self._pgpu01_max_nworkers  = 2*3 # 6

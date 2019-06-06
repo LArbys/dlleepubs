@@ -53,11 +53,15 @@ class ssnet(ds_project_base):
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._container      = resource['CONTAINER']
         self._endofbroker_buffer_secs = float(resource['ENDOFBROKERLIFEBUFFER_SECS'])
+        if 'IMAGE_PROCESSOR_CFG' in resource:
+            self._processor_cfg = resource['IMAGE_PROCESSOR_CFG']
+        else:
+            self._processor_cfg = None
 
         #self._nruns    = int(resource['NRUNS'])
         #self._max_jobs = int(resource['MAXJOBS'])
-        self._nruns = 15
-        self._max_jobs = 30  # should be roughly 2*(number of workers)
+        self._nruns = 5
+        self._max_jobs = 20  # should be roughly 2*(number of workers)
 
         self._pgpu03_max_nworkers  = 6*3 #18
         self._pgpu01_max_nworkers  = 2*3 # 6
@@ -151,10 +155,17 @@ class ssnet(ds_project_base):
             taggerin = dbdir + "/" + self._outfile_format%("taggeroutv2-larcv",run,subrun)
 
             # locations inside the container
-            dbdir_ic    = dbdir.replace("/90-days-archive","")
-            workdir_ic  = workdir.replace("/90-days-archive","")
-            ssnetout_ic = ssnetout.replace("/90-days-archive","")
-            taggerin_ic = taggerin.replace("/90-days-archive","")
+#            dbdir_ic    = dbdir.replace("/90-days-archive","")
+#            workdir_ic  = workdir.replace("/90-days-archive","")
+#            ssnetout_ic = ssnetout.replace("/90-days-archive","")
+#            taggerin_ic = taggerin.replace("/90-days-archive","")
+
+            # image processor cfg file
+            if self._processor_cfg is None:
+                imgcfg = "input_croiprocessor_default.cfg"
+            else:
+                imgcfg = PUBSSNETDIR+"/processorcfg/"+self._processor_cfg
+#                imgcfg_ic = imgcfg_ic.replace("/90-days-archive","").replace("/tufts/","/kappa/")
 
             # prepare workdir (allow people in same group to destroy it)
             os.system("mkdir -p %s"%(workdir))
@@ -171,12 +182,12 @@ class ssnet(ds_project_base):
 #SBATCH --mem-per-cpu=2560
 
 # CONTAINER
-#CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0_update080617.img
-CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
+#CONTAINER=/cluster/tufts/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0_update080617.img
+CONTAINER=/cluster/tufts/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
 
 # LOCATION OF SSNETSERVER CODE (IN CONTAINER)
-SSS_BASEDIR=/cluster/kappa/wongjiradlab/larbys/ssnetserver # for debug
-#SSS_BASEDIR=/usr/local/ssnetserver # eventually use frozen code in container
+#SSS_BASEDIR=/cluster/tufts/wongjiradlab/larbys/ssnetserver # for debug
+SSS_BASEDIR=/usr/local/ssnetserver # eventually use frozen code in container
 
 # WORKING DIRECTORY
 WORKDIR=%s
@@ -191,12 +202,15 @@ TREENAME=modimg
 PORT=5559
 BROKER=10.246.81.73 # PGPU03
 
+# IMAGE CONFIG FILE
+IMG_CFG=%s
+
 mkdir -p ${WORKDIR}
 module load singularity
-singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1client_pubs.sh ${SSS_BASEDIR} ${WORKDIR_IN_CONTAINER} ${BROKER} ${PORT} ${SSNET_OUTPUTPATH} ${TAGGER_INPUTPATH} ${TREENAME}"
+singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1client_pubs.sh ${SSS_BASEDIR} ${WORKDIR_IN_CONTAINER} ${BROKER} ${PORT} ${SSNET_OUTPUTPATH} ${TAGGER_INPUTPATH} ${TREENAME} ${IMG_CFG}"
 """
 
-            submit = submitscript%(jobtag,workdir,run,subrun,workdir,workdir_ic,taggerin_ic,ssnetout_ic)
+            submit = submitscript%(jobtag,workdir,run,subrun,workdir,workdir,taggerin,ssnetout,imgcfg)
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
@@ -287,10 +301,13 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
                 self.info( "(%d,%d) not parsed"%(run,subrun)+": "+dbdata )
                 continue
             if runid not in runningjobs:
-                self.info("(%d,%d) no longer running. updating status,seq to 3,0"%(run,subrun))
+                self.info("(%d,%d,%s) no longer running. updating status,seq to 3,0"%(run,subrun,self._project))
                 #slurmjid = int(dbdata.split(":")[1])
                 psacct = os.popen("sacct --format=\"Elapsed\" -j %d"%(runid))
-                data = "jobid:%d,elapsed:%s"%(runid,psacct.readlines()[2].strip())
+                try:
+                    data = "jobid:%d,elapsed:%s"%(runid,psacct.readlines()[2].strip())
+                except:
+                    data = "jobid:%d,elapsed:%s"%(runid,"--")
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
                                     subrun  = int(x[1]),
@@ -306,8 +323,8 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
 
         query =  "select t1.run,t1.subrun,supera"
         query += " from %s t1 join %s t2 on (t1.run=t2.run and t1.subrun=t2.subrun)" % (self._project,self._filetable)
-        query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit %d"%(self._nruns)
-        #query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit %d"%(3)
+        query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit %d"%(self._nruns * 10)
+        #query += " where t1.status=3 and t1.seq=0 order by run, subrun desc limit %d"%(100)
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
         self.info("Number of ssnet jobs in finished state: %d"%(len(results)))
@@ -317,7 +334,7 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
             run    = int(x[0])
             subrun = int(x[1])
             supera = x[2]
-            supera_ic = supera.replace("/90-days-archive","")
+#            supera_ic = supera.replace("/90-days-archive","")
 
             # form output file names
             runmod100 = run%100
@@ -326,11 +343,12 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
             subrundiv100 = subrun/100
             dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
             ssnetout     = dbdir + "/" + self._outfile_format%("ssnetserveroutv2-larcv",run,subrun)
-            ssnetout_ic  = ssnetout.replace("/90-days-archive","")
+#            ssnetout_ic  = ssnetout.replace("/90-days-archive","")
             jobtag       = 10000*run + subrun
             workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)            
 
-            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBSSNETDIR,ssnetout_ic,supera_ic,PUBSSNETDIR.replace("/cluster/tufts","/cluster/kappa")))
+            #pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBSSNETDIR,ssnetout_ic,supera_ic,PUBSSNETDIR.replace("/cluster/tufts","/cluster/kappa")))
+            pcheck = os.popen("%s/./singularity_check_jobs.sh %s %s %s"%(PUBSSNETDIR,ssnetout,supera,PUBSSNETDIR))
             lcheck = pcheck.readlines()
             good = False
             try:
@@ -375,7 +393,8 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
             self.get_resource()
 
         # check running jobs
-        query = "select run,subrun from %s where status=10 order by run,subrun asc limit %d" %( self._project, self._nruns*10 )
+        #query = "select run,subrun from %s where status=10 order by run,subrun asc limit %d" %( self._project, self._nruns*10 )
+        query = "select run,subrun from %s where status=10 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
 
@@ -404,7 +423,9 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
         #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_nue_signal_overlay.txt",'r')
         #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_nue_intrinsic_overlay.txt",'r')
         #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_bnb_overlay_p00.txt",'r')
-        fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_bnb_overlay_p01.txt",'r')
+        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc8v7_bnb_overlay_p01.txt",'r')
+        #fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc9tag1_bnb5e19.txt",'r')
+        fbroken = open("brokenssnet/ssnet_broken_entry_list_mcc9tag2_nueintrinsic_corsika.txt",'r')
         lbroken = fbroken.readlines()
         rslist = []
         for l in lbroken:
@@ -416,6 +437,10 @@ singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_caffe1cli
             rs = (run,subrun)
             if rs not in rslist:
                 rslist.append(rs)
+
+        print "WARNING YOU ARE ABOUT TO OBLITERATE %d ENTRIES. PROCEED WITH CAUTION."%(len(rslist))
+        print "Bail? [ENTER] to continue"
+        raw_input()
 
         # Attempt to connect DB. If failure, abort
         if not self.connect():
@@ -472,9 +497,9 @@ if __name__ == '__main__':
         test_obj = ssnet()
 
     jobslaunched = False
-    #jobslaunched = test_obj.process_newruns()
+    jobslaunched = test_obj.process_newruns()
     if not jobslaunched:
         test_obj.validate()
         #test_obj.error_handle()
-        #test_obj.modstatus()
+        #test_obj.modstatus() # reset of DB state coupled with file deletion CAUTION!!!
         pass

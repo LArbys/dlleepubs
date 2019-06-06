@@ -9,11 +9,11 @@
 #SBATCH --partition gpu
 #SBATCH --nodelist=pgpu03
 
-CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
-#SSNETSERVER_BASEDIR=/usr/local/ssnetserver
-SSS_BASEDIR=/cluster/kappa/wongjiradlab/larbys/ssnetserver
-WORKDIR=/cluster/kappa/wongjiradlab/larbys/pubs/dlleepubs/serverssnet/
-TIMESTAMP_FILE=/cluster/kappa/wongjiradlab/larbys/pubs/dlleepubs/serverssnet/ssnetserver_broker_start.txt
+CONTAINER=/cluster/tufts/wongjiradlab/larbys/images/singularity-ssnetserver/singularity-ssnetserver-caffelarbys-cuda8.0.img
+#SSS_BASEDIR=/usr/local/ssnetserver
+SSS_BASEDIR=/cluster/tufts/wongjiradlab/larbys/ssnetserver
+WORKDIR=/cluster/tufts/wongjiradlab/larbys/pubs/dlleepubs/serverssnet/
+TIMESTAMP_FILE=/cluster/tufts/wongjiradlab/larbys/pubs/dlleepubs/serverssnet/ssnetserver_broker_start.txt
 
 module load singularity
 singularity exec ${CONTAINER} bash -c "cd ${SSS_BASEDIR}/grid && ./run_broker_w_timestamp_file.sh ${SSS_BASEDIR} ${WORKDIR} ${TIMESTAMP_FILE}"

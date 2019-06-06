@@ -173,8 +173,10 @@ if __name__=="__main__":
     rselist = filedict.keys()
     rselist.sort()
 
+    os.system('rm -f filelist.txt')
     f = open('filelist.txt','w')
 
+    os.system('rm -f incomplete.txt')
     g = open('incomplete.txt','w')
 
     for rse in rselist:

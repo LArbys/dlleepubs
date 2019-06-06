@@ -1,8 +1,8 @@
 #!/bin/bash
 
 
-CONTAINER=/cluster/kappa/90-days-archive/wongjiradlab/larbys/images/dllee_unified/singularity-dllee-unified-taggerv2alpha-20171121.img
-SCRIPT=/cluster/kappa/wongjiradlab/grid_jobs/dllee-tagger-scripts/check_pubs_job.py
+CONTAINER=/cluster/tufts/wongjiradlab/larbys/images/dllee_unified/singularity-dllee-unified-taggerv2alpha-20171121.img
+SCRIPT=/cluster/tufts/wongjiradlab/grid_jobs/dllee-tagger-scripts/check_pubs_job.py
 
 module load singularity
 

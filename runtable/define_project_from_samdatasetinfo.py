@@ -1,13 +1,13 @@
 #!/bin/env python
 import os,sys,json
-from dstream.ds_api import death_star
+from dstream.ds_api import death_star, ds_reader
 from pub_dbi        import pubdb_conn_info
 from pub_util       import pub_logger
 from datetime import tzinfo, timedelta, datetime
 
 PUB_DB_NAME=os.environ["PUB_PSQL_WRITER_DB"]
 
-def insert_metadata( runtable, ds, metadata, folder_dict ):
+def insert_metadata( runtable, ds, dr, metadata, folder_dict ):
 
     # to complete an entry need:
     # larcv, opreco, reco2d, mcinfo (if MC), mctruth (if MC)
@@ -104,6 +104,17 @@ def insert_metadata( runtable, ds, metadata, folder_dict ):
 
         ts     = (datetime.now()+timedelta(seconds= 0)).strftime('%Y-%m-%d %H:%M:%S')
         te     = (datetime.now()+timedelta(seconds=60)).strftime('%Y-%m-%d %H:%M:%S')
+
+        # check if already exists
+        query = "select run,subrun from %s_paths where run=%d and subrun=%d order by run,subrun asc" %( runtable, run, subrun )
+        dr._cursor.execute(query)
+        results = dr._cursor.fetchall()
+
+        if len(results)>0:
+            print "ENTRY ALREADY IN TABLE. Skipping."
+            continue
+        else:
+            print "NEW ENTRY. Insert into Table."
     
         # insert into runtable
         ds.insert_into_death_star( runtable, run, subrun, ts, te)
@@ -247,9 +258,23 @@ if __name__ == "__main__":
                "mcinfo":pathlist_folder+"/data/larlite_mcinfo",
                "larcvtruth":pathlist_folder+"/data/larcv_mctruth"}
 
+    #runtable = "mcc9v12_intrinsicoverlay"
+    #pathlist_folder="/cluster/tufts/wongjiradlab/larbys/data/mcc9/mcc9v12_intrinsicoverlay"
+    #metadatadict = {"larcv":pathlist_folder +"/pathlist_prodgenie_bnb_intrinsic_nue_uboone_overlay_mcc9_TESTv12_C1_larcv_wholeview.pkl",
+    #                "opreco":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_uboone_overlay_mcc9_TESTv12_C1_larlite_opreco.pkl",
+    #                "reco2d":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_uboone_overlay_mcc9_TESTv12_C1_larlite_backtracker.pkl",
+    #                "mcinfo":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_uboone_overlay_mcc9_TESTv12_C1_larlite_mcinfo.pkl",
+    #                "larcvtruth":pathlist_folder+"/pathlist_prodgenie_bnb_intrinsic_nue_uboone_overlay_mcc9_TESTv12_C1_larcv_mctruth.pkl"}
+    #folders = {"larcv":pathlist_folder+"/data/larcv_wholeview",
+    #           "opreco":pathlist_folder+"/data/larlite_opreco",
+    #           "reco2d":pathlist_folder+"/data/larlite_backtracker",
+    #           "mcinfo":pathlist_folder+"/data/larlite_mcinfo",
+    #           "larcvtruth":pathlist_folder+"/data/larcv_mctruth"}
+    
+    
 
     print "BUILD TABLE FOR ",runtable," USING SAM META-DATA"
-    metadata = parse_dataset_dict( metadatadict )
+    metadata = parse_dataset_dict( metadatadict, ismc=True )
 
     # we list the folders where the files are parked on tufts (or where symlinks are)
 
@@ -257,12 +282,9 @@ if __name__ == "__main__":
         print "debug: stop after parsing of metadata dictionary"
         sys.exit(-1)
 
-    ## set environment variables for PUBS database
-    os.system("$PUB_TOP_DIR/sbin/remove_runtable %s"%(runtable))
     
-    ## drop the existing runtable
-    os.system("psql -U tufts-pubs -h nudot.lns.mit.edu %s -c 'DROP TABLE %s_paths;'"%(PUB_DB_NAME,runtable))
 
+    # Check if table exists
     dumptablescmd = "psql -U tufts-pubs -h nudot.lns.mit.edu %s -c '\dt'"%(PUB_DB_NAME)
     pdump = os.popen(dumptablescmd)
     ldump = pdump.readlines()
@@ -276,14 +298,22 @@ if __name__ == "__main__":
             hastable = True
 
     if hastable:
-        print runtable," found"
+        print runtable," FOUND"
     else:
-        print runtable," not found"
+        print runtable," NOT FOUND"
 
-    # for debug to destroy table
-    #hastable = False
+    if hastable and False:
+        # set environment variables for PUBS database
+        os.system("$PUB_TOP_DIR/sbin/remove_runtable %s"%(runtable))
+        
+        # drop the existing runtable
+        os.system("psql -U tufts-pubs -h nudot.lns.mit.edu %s -c 'DROP TABLE %s_paths;'"%(PUB_DB_NAME,runtable))
+
+        
+        hastable = False
 
     if not hastable:
+        print "DEFINE TABLE"
         # define table
         os.system("$PUB_TOP_DIR/sbin/create_runtable %s"%(runtable))
         tabledef =  "( run integer, subrun integer, numevents integer, numfiles integer, runlist text, ismc boolean, complete boolean,"
@@ -293,12 +323,16 @@ if __name__ == "__main__":
 
     logger = pub_logger.get_logger('death_star')
     dbconn = pubdb_conn_info.admin_info()
-    ds =death_star( dbconn, logger )
+    dr = ds_reader(  dbconn, logger)
+    ds = death_star( dbconn, logger )
     if not ds.connect():
-        print "Could not connect"
+        print "DS Could not connect"
+        sys.exit(1)
+    if not dr.connect():
+        print "DR Could not connect"
         sys.exit(1)
 
     # # put the information into the database table
-    insert_metadata( runtable, ds, metadata, folders )
+    insert_metadata( runtable, ds, dr, metadata, folders )
 
 

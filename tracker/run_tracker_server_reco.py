@@ -46,7 +46,7 @@ class trackerreco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns            = 20
+        self._nruns            = 10
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -70,7 +70,7 @@ class trackerreco(ds_project_base):
                            "cbarne06",
                            "jmoon02",
                            "ran01",
-                           "lyates01",
+                          "lyates01",
                            "ahourl01",
                            "adiaz09"]
             
@@ -155,7 +155,7 @@ class trackerreco(ds_project_base):
             ssnet_input  = os.path.join(inputdbdir0,self._file_format%("ssnetserveroutv2-larcv",run,subrun))
             ssnet_input  += ".root"
 
-            # tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
+            #tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggerout-larcv",run,subrun))
             tagger_input  = os.path.join(inputdbdir0,self._file_format%("taggeroutv2-larcv",run,subrun))
             tagger_input += ".root"
 
@@ -169,32 +169,35 @@ class trackerreco(ds_project_base):
 
             # supera
             inputlist_f = open(os.path.join(inputlistdir,"supera_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(supera_input).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(supera_input))
             inputlist_f.close()
+
  
             # ssnet
             inputlist_f = open(os.path.join(inputlistdir,"ssnet_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(ssnet_input).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(ssnet_input))
             inputlist_f.close()
 
             # tagger
             inputlist_f = open(os.path.join(inputlistdir,"tagger_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(tagger_input).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(tagger_input))
             inputlist_f.close()
             
             # vertex
             inputlist_f = open(os.path.join(inputlistdir,"vertex_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(vertexout_input).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(vertexout_input))
             inputlist_f.close()
 
             # larlite
             inputlist_f = open(os.path.join(inputlistdir,"reco2d_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(reco2dinput).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(reco2dinput))
             inputlist_f.close();
+
+            print "test", os.path.realpath(mcinfoinput)
 
             inputlist_f = open(os.path.join(inputlistdir,"mcinfo_inputlist_%05d.txt"% int(jobtag)),"w+")
             if self._ismc == 1:
-                inputlist_f.write("%s" % os.path.realpath(mcinfoinput).replace("90-days-archive",""))
+                inputlist_f.write("%s" % os.path.realpath(mcinfoinput))
             elif self._ismc == 0:
                 inputlist_f.write("INVALID")
             else:
@@ -220,6 +223,7 @@ class trackerreco(ds_project_base):
 
             # copy reco job template over
             stat,out = commands.getstatusoutput("scp %s %s" % (self._run_script,workdir))
+            print self._run_script
             run_script = os.path.join(workdir,os.path.basename(self._run_script))
 
             # copy configs over
@@ -246,10 +250,11 @@ class trackerreco(ds_project_base):
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
-            sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("EEE",workdir)
+
             sub_data=sub_data.replace("FFF",outdbdir)
             sub_data=sub_data.replace("GGG",os.path.basename(run_script))
-            sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("HHH",outdbdir)
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
@@ -462,5 +467,5 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    test_obj.error_handle()
-
+    #test_obj.error_handle()
+    

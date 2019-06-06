@@ -44,7 +44,7 @@ class eventweight(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns = int(1)
+        self._nruns = int(10)
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
@@ -57,7 +57,7 @@ class eventweight(ds_project_base):
         self._reader_fcl1      = os.path.join(CFG_DIR,"evweight",str(resource['READER_FCL1']))
         self._reader_fcl2      = os.path.join(CFG_DIR,"evweight",str(resource['READER_FCL2']))
         self._out_runtag       = str(resource['RUNTAG'])
-        self._max_jobs         = int(1e4)
+        self._max_jobs         = int(400)
         self._usenames         = int(str(resource['ACCOUNT_SHARE']))
         if self._usenames == 1:
             self._names = ["vgenty01",
@@ -84,6 +84,8 @@ class eventweight(ds_project_base):
 
     ## @brief access DB and retrieves new runs and process
     def process_newruns(self):
+
+        print CFG_DIR
 
         # Attempt to connect DB. If failure, abort
         if not self.connect():
@@ -156,7 +158,7 @@ class eventweight(ds_project_base):
 
             # mcinfo
             inputlist_f = open(os.path.join(inputlistdir,"mcinfo_inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % os.path.realpath(mcinfo_input).replace("90-days-archive",""))
+            inputlist_f.write("%s" % os.path.realpath(mcinfo_input))
             inputlist_f.close()
 
             # runlist
@@ -184,6 +186,8 @@ class eventweight(ds_project_base):
             stat,out = commands.getstatusoutput("scp -r %s %s" % (self._reader_fcl2,workdir))
             reader_fcl2 = os.path.basename(self._reader_fcl2)
 
+            print stat, out
+
             # edit the run script
             run_data = ""
             with open(run_script,"r") as f: run_data = f.read()
@@ -201,10 +205,10 @@ class eventweight(ds_project_base):
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
-            sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("EEE",workdir)
             sub_data=sub_data.replace("FFF",outdbdir)
             sub_data=sub_data.replace("GGG",os.path.basename(run_script))
-            sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("HHH",outdbdir)
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1

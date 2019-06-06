@@ -43,7 +43,7 @@ class vertex_reco(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         #self._nruns = int(resource['NRUNS'])
-        self._nruns = 20000
+        self._nruns = 20
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir        = str(resource['STAGE1DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
@@ -150,7 +150,7 @@ class vertex_reco(ds_project_base):
             ssnetinput += ".root"
 
             inputlist_f = open(os.path.join(inputlistdir,"inputlist_%05d.txt"% int(jobtag)),"w+")
-            inputlist_f.write("%s" % ssnetinput.replace("90-days-archive",""))
+            inputlist_f.write("%s" % ssnetinput)#.replace("90-days-archive",""))
             inputlist_f.close()
 
             # runlist
@@ -195,10 +195,10 @@ class vertex_reco(ds_project_base):
             sub_data=sub_data.replace("BBB",os.path.join(workdir,"log.txt"))
             sub_data=sub_data.replace("CCC","1")
             sub_data=sub_data.replace("DDD",self._container)
-            sub_data=sub_data.replace("EEE",workdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("EEE",workdir)#.replace("90-days-archive",""))
             sub_data=sub_data.replace("FFF",outdbdir)
             sub_data=sub_data.replace("GGG",os.path.basename(run_script))
-            sub_data=sub_data.replace("HHH",outdbdir.replace("90-days-archive",""))
+            sub_data=sub_data.replace("HHH",outdbdir)#.replace("90-days-archive",""))
             with open(sub_script,"w") as f: f.write(sub_data)
 
             ijob += 1
@@ -403,4 +403,4 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    # test_obj.error_handle()
+    test_obj.error_handle()
