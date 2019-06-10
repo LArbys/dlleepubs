@@ -483,7 +483,7 @@ if __name__ == '__main__':
 
     test_obj = nueid_reco(sys.argv[1])
     jobslaunched = False
-    #jobslaunched = test_obj.process_newruns()
+    jobslaunched = test_obj.process_newruns()
     test_obj.validate()
     #test_obj.error_handle()
     

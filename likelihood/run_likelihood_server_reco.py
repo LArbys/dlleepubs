@@ -48,7 +48,7 @@ class likelihood_reco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns            = int(50e3)
+        self._nruns            = int(50)
         self._parent_project1  = str(resource['SOURCE_PROJECT1'])
         self._parent_project2  = str(resource['SOURCE_PROJECT2'])
         self._input_dir1       = str(resource['STAGE1DIR'])

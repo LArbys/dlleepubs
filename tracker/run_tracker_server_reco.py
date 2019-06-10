@@ -46,7 +46,7 @@ class trackerreco(ds_project_base):
 
         resource = self._api.get_resource(self._project)
         
-        self._nruns            = 10
+        self._nruns            = 100
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir1       = str(resource['STAGE1DIR'])
         self._input_dir2       = str(resource['STAGE2DIR'])
@@ -399,7 +399,9 @@ class trackerreco(ds_project_base):
                                                           self._out_runtag,self._file_format,
                                                           self._input_dir1,self._out_dir)
             # link
-            ana = os.path.join(outdbdir,"track_truth_match_%d.root" % jobtag)
+            #ana = os.path.join(outdbdir,"track_truth_match_%d.root" % jobtag)
+            #success = os.path.exists(ana)
+            ana = os.path.join(outdbdir, "tracker_reco_%d.root" % jobtag)
             success = os.path.exists(ana)
 
             if success == True:
