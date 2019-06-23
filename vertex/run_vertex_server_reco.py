@@ -432,4 +432,4 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    #test_obj.error_handle()
+    test_obj.error_handle()

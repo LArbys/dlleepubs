@@ -43,7 +43,7 @@ class vertex_reco(ds_project_base):
         resource = self._api.get_resource(self._project)
         
         #self._nruns = int(resource['NRUNS'])
-        self._nruns = 20
+        self._nruns = 50
         self._parent_project   = str(resource['SOURCE_PROJECT'])
         self._input_dir        = str(resource['STAGE1DIR'])
         self._file_format      = str(resource['FILE_FORMAT'])
@@ -336,10 +336,13 @@ class vertex_reco(ds_project_base):
                                                          self._runtag,self._file_format,
                                                          self._input_dir,self._out_dir)
             # link
-            vertex_pkl1    = os.path.join(outdbdir,"ana_comb_df_%d.pkl" % jobtag)
-            self.info("verify exists=%s" % vertex_pkl1)
+            #vertex_pkl1    = os.path.join(outdbdir,"ana_comb_df_%d.pkl" % jobtag)
+            #self.info("verify exists=%s" % vertex_pkl1)
+            vertex_out = os.path.join(outdbdir,"vertexout_%d.root" % jobtag)
+            self.info("verify exists=%s" % vertex_out)
 
-            success = os.path.exists(vertex_pkl1)
+            #success = os.path.exists(vertex_pkl1)
+            success = os.path.exists(vertex_out)
 
             if success == True:
                 self.info("status of job for (%d,%d) is good"%(run,subrun))
@@ -403,4 +406,4 @@ if __name__ == '__main__':
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
     test_obj.validate()
-    test_obj.error_handle()
+    #test_obj.error_handle()

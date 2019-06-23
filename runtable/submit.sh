@@ -3,7 +3,7 @@
 #SBATCH --job-name=prepflist
 #SBATCH --output=log_prepflist.txt
 #SBATCH --ntasks=1
-#SBATCH --time=480:00
+#SBATCH --time=960:00
 #SBATCH --mem-per-cpu=2000
 
 #SUPERADIR=/cluster/kappa/90-days-archive/wongjiradlab/larbys/data/mcc8v5/bnb_5e19/larcv
@@ -24,13 +24,13 @@
 #LARLITEDIR=/cluster/kappa/90-days-archive/wongjiradlab/vgenty/michel_data/larlite
 #SUPERATRUTH=
 
-SUPERADIR=/cluster/tufts/wongjiradlab/lyates01/sharing/daviosthings/mcc9_v13_nueintrinsics/larcv
-LARLITEDIR=/cluster/tufts/wongjiradlab/lyates01/sharing/daviosthings/mcc9_v13_nueintrinsics/larlite
-SUPERATRUTH=/cluster/tufts/wongjiradlab/lyates01/sharing/daviosthings/mcc9_v13_nueintrinsics/larcv_mctruth
+#SUPERADIR=/cluster/tufts/wongjiradlab/lyates01/sharing/daviosthings/mcc9_v13_bnboverlay/larcv
+#LARLITEDIR=/cluster/tufts/wongjiradlab/lyates01/sharing/daviosthings/mcc9_v13_bnboverlay/larlite
+#SUPERATRUTH=/cluster/tufts/wongjiradlab/lyates01/sharing/daviosthings/mcc9_v13_bnboverlay/larcv_mctruth
 
-#SUPERADIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/run1ext/larcv
-#LARLITEDIR=/cluster/kappa/wongjiradlab/lyates01/dl_production/run1ext/larlite
-#SUPERATRUTH=
+SUPERADIR=/cluster/tufts/wongjiradlab/lyates01/dl_production/mcc9_genie3_thresholds/0MeV_to_200MeV/larcv
+LARLITEDIR=/cluster/tufts/wongjiradlab/lyates01/dl_production/mcc9_genie3_thresholds/0MeV_to_200MeV/larlite
+SUPERATRUTH=/cluster/tufts/wongjiradlab/lyates01/dl_production/mcc9_genie3_thresholds/0MeV_to_200MeV/larcv_mctruth
 
 #SUPERADIR=/cluster/kappa/wongjiradlab/larbys/data/db/numi_kdar_only_sample_input_files/LArCV/
 #LARLITEDIR=/cluster/kappa/wongjiradlab/larbys/data/db/numi_kdar_only_sample_input_files/LArLITE/
