@@ -1,4 +1,4 @@
-## @namespace dlleepubs.ssnet
+## @namespace dlleepubs.ubdlserver
 #  @ingroup dummy_dstream
 #  @brief Defines a project ssnet
 #  @author twongjirad
@@ -15,15 +15,15 @@ from dstream import ds_status
 PUBDIR = os.environ["PUB_TOP_DIR"]
 PUB_UBDLSERVER_DIR = PUBDIR+"/dlleepubs/ubdlserver"
 
-## @class infill
+## @class larflow
 #  @brief A dummy nu bin file xfer project
 #  @details
 #  This dummy project transfers dummy files created by dummy_daq project\n
 #  It simply copies dummy nu bin files with a different file name under $PUB_TOP_DIR/data.
-class infill(ds_project_base):
+class larflow(ds_project_base):
 
     # Define project name as class attribute
-    _project = 'infill'
+    _project = 'larflow'
 
     ## @brief default ctor can take # runs to process for this instance
     def __init__(self,project_name):
@@ -32,7 +32,7 @@ class infill(ds_project_base):
             self._project = project_name
 
         # Call base class ctor
-        super(infill,self).__init__()
+        super(larflow,self).__init__()
 
         self._nruns = None
         self._out_dir = ''
@@ -54,16 +54,26 @@ class infill(ds_project_base):
         self._outfile_format = resource['OUTFILE_FORMAT']
         self._grid_workdir   = resource['GRID_WORKDIR']
         self._container      = resource['CONTAINER']
-        self._ubdl_dir       = resource['UBDL_DIR']
-        self._ubinfill_dir   = resource['INFILL_DIR']
+        self._ublarflow_dir  = resource['LARFLOW_DEPLOY_DIR']
         self._weight_dir     = resource['WEIGHT_DIR']
-        self._treename       = resource['TREENAME']
-        self._run_script     = resource['RUN_SCRIPT']
-
+        self._run_script     = "/cluster/tufts/wongjiradlab/larbys/pubs/dlleepubs/ubdlserver/run_dense_larflow.sh"
         self._nruns    = int(resource['NRUNS'])
         self._max_jobs = int(resource['MAXJOBS'])
+
+        #self._broker         = resource['BROKER_ADDRESS']
+        #self._port           = resource['PORT']
+        #self._treename       = resource['TREENAME']
+        #self._endofbroker_buffer_secs = float(resource['ENDOFBROKERLIFEBUFFER_SECS'])
+
         self._nruns    = 1
-        self._max_jobs = 12        
+        self._max_jobs = 1
+
+        #self._pgpu03_max_nworkers  = 6*3 #18
+        #self._pgpu01_max_nworkers  = 2*3 # 6
+        #self._pgpu02_max_nworkers  = 2*3 # 6
+        #self._ao_node_limit        = 1   # 1
+        #self._tot_workers = self._pgpu03_max_nworkers+self._pgpu01_max_nworkers+self._pgpu02_max_nworkers+2*self._ao_node_limit # 32
+        
 
     ## @brief count the number of client jobs
     def get_number_of_current_jobs(self):
@@ -82,6 +92,20 @@ class infill(ds_project_base):
         if self._nruns is None:
             self.get_resource()
 
+        # check how much time until the server will shut down
+        # deprecated as we're using cpu (or we want to)
+        #f = open("%s/ubdlserver_broker_start.txt"%(PUB_UBDLSERVER_DIR),'r')
+        #server_tstamp = f.readlines()[0]
+        #self.info("Server start time: "+server_tstamp.strip())
+        #server_start = time.strptime( server_tstamp.strip(), "%a, %d %b %Y %H:%M:%S +0000" )
+        #secs_running = (time.mktime(time.localtime())-time.mktime(server_start))
+        #server_maxtime = 3*(24*3600) # 3 days
+        #secs_remaining = server_maxtime - secs_running
+        #self.info("Server time remaining: %.2f (secs) %.2f hours"%(secs_remaining,secs_remaining/3600))
+        #if secs_remaining < self._endofbroker_buffer_secs:
+        #    self.info("We are within the end time of the server (%d). Do not launch jobs to prevent clients talking to nothing. Relaunch the server+workers!!"%(self._endofbroker_buffer_secs))
+        #    return False
+
         # check if we're running the max number of jobs currently
         query = "select run,subrun from %s where status=2 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
@@ -90,7 +114,7 @@ class infill(ds_project_base):
         jobslaunched = False
         
         if nremaining<=0:
-            self.info("Already running (%d) max number of infill jobs (%d)" % (len(results),self._max_jobs) )
+            self.info("Already running (%d) max number of larflow jobs (%d)" % (len(results),self._max_jobs) )
             return False
 
         if nremaining>self._nruns:
@@ -110,16 +134,6 @@ class infill(ds_project_base):
 
         ijob=0
         for x in results:
-            #print x[0]
-
-            # for each:
-            # a) make workdir
-            # b) make input lists
-            # c) make rerunlist.txt
-            # d) copy over ssnet config
-            # e) generate submit script (or copy over)
-            # f) launch and store job id
-            # g) set status to 2: running
 
             # run id
             run    = int(x[0])
@@ -128,78 +142,69 @@ class infill(ds_project_base):
             rundiv100 = run/100
             subrunmod100 = subrun%100
             subrundiv100 = subrun/100
-            
+            supera = x[2]
             if x[3] is None:
                 db_data = {}
             else:
                 db_data = json.loads( x[3] )
 
-            supera     = x[2]
             # job variables
             jobtag     = 10000*run + subrun            
             dbdir      = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
             workdir    = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)
-            infillout  = dbdir + "/" + self._outfile_format%(self._runtable,run,subrun)
+            larflowout = dbdir + "/" + self._outfile_format%(self._runtable,run,subrun)
 
             # prepare workdir (allow people in same group to destroy it)
             os.system("mkdir -p %s"%(workdir))
+            os.system("cp {} {}/".format(self._run_script,workdir))
             os.system("chmod -R g+rw %s"%(workdir))
-            os.system("cp %s %s/"%(self._run_script,workdir))
-            self.info("prepared workdir for (%d,%d) at %s"%(run,subrun,workdir))
+            self.info("prepared workdir for (%d,%d): %s"%(run,subrun,workdir))
 
             # make submission script for client
             submitscript="""#!/bin/sh
 #
-#SBATCH --job-name=infillclient_{}
-#SBATCH --output={}/log_infillclient_{}_{}.txt
+#SBATCH --job-name=lfdense_{}
+#SBATCH --output={}/log_dense_larflow_{}_{}.txt
 #SBATCH --ntasks=1
-#SBATCH --time=2-00:00:00
-#SBATCH --mem-per-cpu=3000
+#SBATCH --time=8:00:00
+#SBATCH --mem-per-cpu=1000
+#SBATCH --cpus-per-task=4
 
 # CONTAINER
 CONTAINER={}
 
 # UBDL LOCATION
-UBDL_DIR={}
+UBDL_DIR=/cluster/tufts/wongjiradlab/twongj01/ubdl
 
-# LOCATION OF INFILLSERVER CODE (IN CONTAINER)
-UBINFILL_BASEDIR={}
+# LOCATION OF LARFLOWSERVER CODE (IN CONTAINER)
+UBLARFLOW_BASEDIR={}
 
 # WORKING DIRECTORY
 WORKDIR={}
 
 # PATHS (IN CONTAINER)
 SUPERA_INPUTPATH={}
-INFILL_OUTPATH_DIR={}
-INFILL_OUTFILE={}
-
-# PROGRAM PARAMETERS
-TREE_NAME={}
-SCRIPT={}
+LARFLOW_OUTPATH_DIR={}
+LARFLOW_OUTFILE={}
 WEIGHT_DIR={}
 
-COMMAND="cd $WORKDIR && source $SCRIPT $WORKDIR $SUPERA_INPUTPATH $INFILL_OUTPATH_DIR $INFILL_OUTFILE $UBDL_DIR $UBINFILL_BASEDIR $WEIGHT_DIR"
+COMMAND="cd $WORKDIR && source run_dense_larflow.sh $SUPERA_INPUTPATH $LARFLOW_OUTPATH_DIR $LARFLOW_OUTFILE $UBDL_DIR $WEIGHT_DIR"
 
 mkdir -p $WORKDIR
-mkdir -p $INFILL_OUTPATH_DIR
+mkdir -p $LARFLOW_OUTPATH_DIR
 module load singularity
 singularity exec $CONTAINER bash -c "$COMMAND"
 """
-            print self._treename
-            print infillout
+            self.info("Making script for making: {}".format(larflowout))
             submit = submitscript.format(jobtag,
                                          workdir,run,subrun,
                                          self._container,
-                                         self._ubdl_dir,
-                                         self._ubinfill_dir,
+                                         self._ublarflow_dir,
                                          workdir,
                                          supera,
-                                         os.path.dirname(infillout),
-                                         os.path.basename(infillout),
-                                         self._treename,
-                                         os.path.basename(self._run_script),
+                                         os.path.dirname(larflowout),
+                                         os.path.basename(larflowout),
                                          self._weight_dir)
-
             submitout = open(workdir+"/submit.sh",'w')
             print >>submitout,submit
             submitout.close()
@@ -223,8 +228,8 @@ singularity exec $CONTAINER bash -c "$COMMAND"
             # Create a status object to be logged to DB (if necessary)
             if submissionok:
                 self.info("Submitted job for (%d,%d)."%(run,subrun))
-                db_data['jobid'] = submissionid
-                db_data['infillout'] = infillout
+                db_data['jobid']      = submissionid
+                db_data['larflowout'] = larflowout
                 sdata = json.dumps(db_data)
                 status = ds_status( project = self._project,
                                     run     = int(x[0]),
@@ -257,7 +262,7 @@ singularity exec $CONTAINER bash -c "$COMMAND"
             self.get_resource()
 
         # get job listing
-        psinfo = os.popen( "squeue | grep infill" )
+        psinfo = os.popen( "squeue | grep larflowc" )
         lsinfo = psinfo.readlines()
         runningjobs = []
         for l in lsinfo:
@@ -277,7 +282,7 @@ singularity exec $CONTAINER bash -c "$COMMAND"
         query = "select run,subrun,data from %s where status=2 and seq=0 order by run,subrun asc" %( self._project )
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of infill jobs in running state: %d"%(len(results)))
+        self.info("Number of larflow jobs in running state: %d"%(len(results)))
         for x in results:
             run    = int(x[0])
             subrun = int(x[1])
@@ -318,7 +323,7 @@ singularity exec $CONTAINER bash -c "$COMMAND"
 
         self._api._cursor.execute(query)
         results = self._api._cursor.fetchall()
-        self.info("Number of infill jobs in finished state: %d"%(len(results)))
+        self.info("Number of larflow jobs in finished state: %d"%(len(results)))
         
 
         for x in results:
@@ -332,11 +337,11 @@ singularity exec $CONTAINER bash -c "$COMMAND"
             subrunmod100 = subrun%100
             subrundiv100 = subrun/100
             dbdir        = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
-            infillout   = dbdir + "/" + self._outfile_format%("infill-larcv-%s"%(self._runtable),run,subrun)
+            larflowout   = dbdir + "/" + self._outfile_format%("larflow-noinfill-larcv-%s"%(self._runtable),run,subrun)
             jobtag       = 10000*run + subrun
             workdir      = self._grid_workdir + "/%s_%04d_%03d"%(self._project,run,subrun)            
 
-            pcheck = os.popen("%s/./singularity_check_infill_jobs.sh %s %s %s"%(PUB_UBDLSERVER_DIR,infillout,supera,PUB_UBDLSERVER_DIR))
+            pcheck = os.popen("%s/./singularity_check_larflow_jobs.sh %s %s %s"%(PUB_UBDLSERVER_DIR,larflowout,supera,PUB_UBDLSERVER_DIR))
             lcheck = pcheck.readlines()
             good = False
 
@@ -452,8 +457,8 @@ singularity exec $CONTAINER bash -c "$COMMAND"
                 #print "ok, skip: ",rs
                 continue
             dbdir = self._out_dir + "/%03d/%02d/%03d/%02d/"%(rundiv100,runmod100,subrundiv100,subrunmod100)
-            infillout = dbdir + "/" + self._outfile_format%("infillserveroutv2-larcv",run,subrun)
-            cmd = "rm -f "+infillout
+            larflowout = dbdir + "/" + self._outfile_format%("larflowserveroutv2-larcv",run,subrun)
+            cmd = "rm -f "+larflowout
             print "reset state for ",rs,": ",cmd
             # reset the status, delete the existing file
             if True:
@@ -473,9 +478,9 @@ if __name__ == '__main__':
     import sys
     test_obj = None
     if len(sys.argv)>1:
-        test_obj = infill(sys.argv[1])
+        test_obj = larflow(sys.argv[1])
     else:
-        test_obj = infill()
+        test_obj = larflow()
 
     jobslaunched = False
     jobslaunched = test_obj.process_newruns()
